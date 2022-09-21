@@ -14,9 +14,9 @@ public class Flashlight : MonoBehaviour
     private float maxIntensity;
 
 
-    public float energyDrainRate;
-    public float energyCap;
-    public float energy;
+    [SerializeField] private float energyDrainRate;
+    [SerializeField] private float energyCap;
+    [SerializeField] private float energy;
 
     void Start(){
         camera = GameObject.Find("Player Camera");
@@ -64,4 +64,14 @@ public class Flashlight : MonoBehaviour
             }
         }
     }
+
+    public float getEnergy() { 
+        return energy; 
+    }
+
+    public void increaseEnergy(float value) {
+        energy = Mathf.Min(energy + value, energyCap);
+    }
+
+
 }

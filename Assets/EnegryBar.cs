@@ -16,6 +16,6 @@ public class EnegryBar : MonoBehaviour{
 
 
     void Update(){
-        energyFill.value = flashlight.energy;
+        energyFill.value = flashlight.getEnergy();
     }
 }

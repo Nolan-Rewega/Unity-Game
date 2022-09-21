@@ -13,10 +13,13 @@ public class RayCastSelection : MonoBehaviour
     private float raySpeed;
     private int currentRay;
 
+    private float pickUpRange;
+
 
     void Start(){
-        player = GameObject.Find("Player Camera");
+        //player = GameObject.Find("Player Camera");
         raySpeed = 25.0f;
+        pickUpRange = 1.8f;
 
         // -- Set up the ray pool.
         for (int i = 0; i < 5; i++){
@@ -27,20 +30,13 @@ public class RayCastSelection : MonoBehaviour
         currentRay = 0;
     }
 
-    void Update() {
-
-        if (Input.GetKeyDown(KeyCode.E)) {
-            castRay();
-        }
-   
-    }
 
 
-    void castRay() {
-        Vector3 dir = player.transform.eulerAngles;
+    public void castRay() {
+        Vector3 dir = gameObject.transform.eulerAngles;
 
         Quaternion rayRotation  =  Quaternion.Euler(dir.x, dir.y, dir.z);
-        Vector3    rayPosition  = player.transform.position;
+        Vector3    rayPosition  =  gameObject.transform.position;
 
         GameObject ray = rayPool[currentRay];
         ray.SetActive(true);
@@ -54,14 +50,20 @@ public class RayCastSelection : MonoBehaviour
 
 
     public void rayCastCallback(GameObject hitObject) {
+        
+        // -- Enforce maximum pick up range
+        float distance = (hitObject.transform.position - gameObject.transform.position).magnitude;
+        //Debug.Log(distance);
+
 
         if (hitObject.tag == "Collectable"){
-            // -- call collectable interface
-            Debug.Log("Hit Battery");
+            if (distance > pickUpRange) { return; }
+            hitObject.GetComponent<Battery>().action();
         }
         else if (hitObject.tag == "Interactable"){
             // -- Enter Interaction mode on press.
-            Debug.Log("Interactable Object");
+            if (distance > 3.0f) { return; }
+            hitObject.GetComponent<Door>().action();
         }
         else if (hitObject.tag == "Physics"){
             // -- Enter enter carry mode on press

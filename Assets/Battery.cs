@@ -4,15 +4,18 @@ using UnityEngine;
 
 public class Battery : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
+
+    private GameObject flashlight;
+
+    void Start(){
+        flashlight = GameObject.Find("Flashlight");
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+    public void action() {
+        // -- Consume object to gain flashlight energy.
+        // play noise.
+        flashlight.GetComponent<Flashlight>().increaseEnergy(33.0f);
+        Destroy(gameObject);
     }
+
 }

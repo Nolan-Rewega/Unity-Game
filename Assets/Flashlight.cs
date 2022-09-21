@@ -7,7 +7,7 @@ public class Flashlight : MonoBehaviour
     private bool toggled;
 
     // -- GameObjects and Components 
-    private GameObject camera;
+    private GameObject playerCamera;
     private Light lightComponent;
     
     // -- flashlight parameters
@@ -19,7 +19,7 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private float energy;
 
     void Start(){
-        camera = GameObject.Find("Player Camera");
+        playerCamera = GameObject.Find("Player Camera");
         lightComponent = gameObject.GetComponent<Light>();
 
         toggled = false;
@@ -29,11 +29,11 @@ public class Flashlight : MonoBehaviour
 
 
     void Update(){
-        Vector3 cameraPosition = camera.transform.position;
-        Vector3 cameraAngle    = camera.transform.eulerAngles;
+        Vector3 cameraPosition = playerCamera.transform.position;
+        Vector3 cameraAngle    = playerCamera.transform.eulerAngles;
 
         // -- Update flashlights position
-        gameObject.transform.position = camera.transform.position;
+        gameObject.transform.position = playerCamera.transform.position;
         gameObject.transform.eulerAngles = new Vector3(cameraAngle.x, cameraAngle.y, 0.0f);
 
 

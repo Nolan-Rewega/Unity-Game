@@ -25,11 +25,11 @@ public class Ray : MonoBehaviour
 
     private void OnTriggerEnter(Collider other) {
         // -- Do nothing on player collision.
-        if (other.gameObject.name == "Player Camera") { return; }
+        if (other.gameObject.name == "Player") { return; }
 
 
         if (other.gameObject.layer == 6){  // -- 6 = Selectable.
-            GameObject.Find("Player Camera").GetComponent<RayCastSelection>().rayCastCallback(other.gameObject);
+            GameObject.Find("Player").GetComponent<RayCastSelection>().rayCastCallback(other.gameObject);
         }
         else {
             gameObject.SetActive(false);

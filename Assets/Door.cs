@@ -7,7 +7,7 @@ public class Door : MonoBehaviour
 
     public void action() {
         // -- Tell the player what door to use
-        GameObject.Find("Player Camera").GetComponent<PlayerMovement>().updateDoorMode(gameObject);
+        GameObject.Find("Player").GetComponent<PlayerMovement>().updateDoorMode(gameObject);
     }
 
     public void rotateDoor(Vector3 playerDir, Vector3 mouseDir) {
@@ -40,7 +40,6 @@ public class Door : MonoBehaviour
         Vector3 old = gameObject.transform.eulerAngles;
         float value = (1.0f ) * (1.0f - (rho / (90.0f * Mathf.Deg2Rad)));
 
-        Debug.Log(value);
         old.y += value;
         gameObject.transform.eulerAngles = old;
 

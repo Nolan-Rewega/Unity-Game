@@ -7,17 +7,18 @@ public class RayCastSelection : MonoBehaviour
 {
     [SerializeField] private GameObject rayPrefab;
 
-    private GameObject player;
-
     private GameObject[] rayPool = new GameObject[5];
     private float raySpeed;
     private int currentRay;
 
     private float pickUpRange;
 
+    private GameObject playerCamera;
+
 
     void Start(){
-        //player = GameObject.Find("Player Camera");
+        playerCamera = gameObject.transform.GetChild(0).gameObject;
+
         raySpeed = 25.0f;
         pickUpRange = 1.8f;
 
@@ -33,17 +34,17 @@ public class RayCastSelection : MonoBehaviour
 
 
     public void castRay() {
-        Vector3 dir = gameObject.transform.eulerAngles;
+        Vector3 dir = playerCamera.transform.eulerAngles;
 
         Quaternion rayRotation  =  Quaternion.Euler(dir.x, dir.y, dir.z);
-        Vector3    rayPosition  =  gameObject.transform.position;
+        Vector3    rayPosition  = playerCamera.transform.position;
 
         GameObject ray = rayPool[currentRay];
         ray.SetActive(true);
         ray.transform.SetPositionAndRotation(rayPosition, rayRotation);
 
         Rigidbody rayBody = ray.GetComponent<Rigidbody>();
-        rayBody.velocity  = transform.forward * raySpeed;
+        rayBody.velocity  = playerCamera.transform.forward * raySpeed;
 
         currentRay = (++currentRay) % 5;
     }
@@ -67,7 +68,8 @@ public class RayCastSelection : MonoBehaviour
         }
         else if (hitObject.tag == "Physics"){
             // -- Enter enter carry mode on press
-            Debug.Log("Physics Object");
+            if (distance > 2.0f) { return; }
+            hitObject.GetComponent<PhysicsObject>().action();
         }
 
     }

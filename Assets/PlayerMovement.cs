@@ -9,7 +9,7 @@ public class PlayerMovement : MonoBehaviour
     private enum STATE { READY, DOOR, HOLDING };
     private STATE currentState;
 
-    private GameObject playerCamera;
+    private GameObject cameraObj;
     private GameObject currPhyObj;
     private GameObject currDoor;
     private RayCastSelection raycaster;
@@ -30,8 +30,8 @@ public class PlayerMovement : MonoBehaviour
         phyObjDistance   =  1.0f;
         sprint           =  1.0f;
 
-        raycaster    = gameObject.GetComponent<RayCastSelection>();
-        playerCamera = gameObject.transform.GetChild(0).gameObject;
+        raycaster  = gameObject.GetComponent<RayCastSelection>();
+        cameraObj  = gameObject.transform.GetChild(0).gameObject;
     }
 
 
@@ -40,6 +40,7 @@ public class PlayerMovement : MonoBehaviour
         sprint = (Input.GetKey(KeyCode.LeftShift)) ? 2.0f : 1.0f;
         
         playerMovement();
+        playerCamera();
         playerSelection();
 
     }
@@ -68,7 +69,7 @@ public class PlayerMovement : MonoBehaviour
                 if (Input.GetKeyUp(KeyCode.E)){
                     // -- Apply a force to the object.
                     currPhyObj.GetComponent<Rigidbody>().useGravity = true;
-                    currPhyObj.GetComponent<Rigidbody>().AddForce((Vector3.up + playerCamera.transform.forward.normalized) * 100.0f * sprint);
+                    currPhyObj.GetComponent<Rigidbody>().AddForce((Vector3.up + cameraObj.transform.forward.normalized) * 100.0f * sprint);
 
                     // -- Drop the object
                     currentState = STATE.READY;
@@ -76,8 +77,15 @@ public class PlayerMovement : MonoBehaviour
                 }
                 else {
                     // -- Move the Object in front of the player.
-                    currPhyObj.transform.position = (playerCamera.transform.forward * phyObjDistance) + playerCamera.transform.position;
-                    currPhyObj.transform.rotation = playerCamera.transform.rotation ;
+                    currPhyObj.transform.position = (cameraObj.transform.forward * phyObjDistance) + cameraObj.transform.position;
+
+                    if (Input.GetKey(KeyCode.R)) {
+                        currPhyObj.transform.Rotate(new Vector3(mouseDelta.y, mouseDelta.x,0.0f));
+                    }
+                    else{
+                        currPhyObj.transform.eulerAngles += new Vector3(0.0f, -mouseDelta.x, 0.0f);
+                    }
+                    
                 }
                 break;
 
@@ -88,35 +96,48 @@ public class PlayerMovement : MonoBehaviour
 
     void playerMovement(){
         float Z = 0, X = 0;
-        if (currentState == STATE.READY || currentState == STATE.HOLDING){
-            // -- Player movement.  W = +z, S = -Z, A = -x, D = +x;
-            Z += (Input.GetKey(KeyCode.W)) ? 1.0f * sensitivityKey * sprint : 0.0f;
-            Z -= (Input.GetKey(KeyCode.S)) ? 1.0f * sensitivityKey * sprint : 0.0f;
-            X += (Input.GetKey(KeyCode.D)) ? 1.0f * sensitivityKey * sprint : 0.0f;
-            X -= (Input.GetKey(KeyCode.A)) ? 1.0f * sensitivityKey * sprint : 0.0f;
+        float angle = cameraObj.transform.eulerAngles.y * Mathf.Deg2Rad;
 
+        float modifier = (currentState == STATE.DOOR) ? 0.5f : sprint;
 
-            float angle = playerCamera.transform.eulerAngles.y * Mathf.Deg2Rad;
+        Z += (Input.GetKey(KeyCode.W)) ? sensitivityKey * modifier : 0.0f;
+        Z -= (Input.GetKey(KeyCode.S)) ? sensitivityKey * modifier : 0.0f;
+        X += (Input.GetKey(KeyCode.D)) ? sensitivityKey * modifier : 0.0f;
+        X -= (Input.GetKey(KeyCode.A)) ? sensitivityKey * modifier : 0.0f;
 
-            playerCamera.transform.eulerAngles += new Vector3(mouseDelta.y, -mouseDelta.x, 0.0f);
-            gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * X - Mathf.Sin(-angle) * Z,
-                                                          0.0f,
-                                                          Mathf.Sin(-angle) * X + Mathf.Cos(-angle) * Z );
+        gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * X - Mathf.Sin(-angle) * Z,
+                                                      0.0f,
+                                                      Mathf.Sin(-angle) * X + Mathf.Cos(-angle) * Z );
+    }
 
+    void playerCamera() {
+        float x = mouseDelta.y;
+        if (cameraObj.transform.eulerAngles.x + mouseDelta.y > 70.0f && cameraObj.transform.eulerAngles.x + mouseDelta.y < 290.0f) {
+            x = 0.0f;
         }
-        else if (currentState == STATE.DOOR){
-            Z += (Input.GetKey(KeyCode.W)) ? 1.0f * sensitivityKey / 2.0f : 0.0f;
-            Z -= (Input.GetKey(KeyCode.S)) ? 1.0f * sensitivityKey / 2.0f : 0.0f;
-            X += (Input.GetKey(KeyCode.D)) ? 1.0f * sensitivityKey / 2.0f : 0.0f;
-            X -= (Input.GetKey(KeyCode.A)) ? 1.0f * sensitivityKey / 2.0f : 0.0f;
 
-            // -- Always look toward the door.
-            float angle = playerCamera.transform.eulerAngles.y * Mathf.Deg2Rad;
-            gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * X - Mathf.Sin(-angle) * Z,
-                                                          0.0f,
-                                                          Mathf.Sin(-angle) * X + Mathf.Cos(-angle) * Z );
+
+        switch (currentState) {
+
+            case STATE.READY:
+                cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
+
+                break;
+
+            case STATE.DOOR:
+                break;
+
+            case STATE.HOLDING:
+                if (!Input.GetKey(KeyCode.R)){
+                    cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
+                }
+                break;
+
+            default:
+                break;
         }
     }
+
 
     // -- Ugly Ugly spaghetti functions.
     public void updateDoorMode(GameObject door) {

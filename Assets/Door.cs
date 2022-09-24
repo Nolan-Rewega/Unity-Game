@@ -17,9 +17,6 @@ public class Door : MonoBehaviour
         Vector3 mouseDirTrans = new Vector3( Mathf.Cos(phi) * mouseDir.x - Mathf.Sin(phi) * mouseDir.z,
                                              0.0f,
                                              Mathf.Sin(phi) * mouseDir.x + Mathf.Cos(phi) * mouseDir.z );
-        //Debug.Log(mouseDir);
-        //Debug.Log(mouseDirTrans);
-
 
         // -- 2. Find the doors perpendicular vector
         Vector3 doorDir = gameObject.transform.right;
@@ -27,18 +24,11 @@ public class Door : MonoBehaviour
         Vector3 perpendicular = new Vector3( Mathf.Cos(angle) * doorDir.x - Mathf.Sin(angle) * doorDir.z,
                                              0.0f,
                                              Mathf.Sin(angle) * doorDir.x + Mathf.Cos(angle) * doorDir.z );
-        //Debug.Log(perpendicular);
 
-        // -- 3. 
-        //Debug.Log(doorDir);
-        //Debug.Log(perpendicular.normalized);
-
+        // -- 3. Rotate the door.
         float rho = Mathf.Acos(Vector3.Dot(perpendicular.normalized, mouseDirTrans.normalized));
-
-        //rho = (rho > Mathf.PI / 2.0f) ? 90.0f: rho;
-        //Debug.Log(rho * Mathf.Rad2Deg);
         Vector3 old = gameObject.transform.eulerAngles;
-        float value = (1.0f ) * (1.0f - (rho / (90.0f * Mathf.Deg2Rad)));
+        float value = (1.0f) * (1.0f - (rho / (90.0f * Mathf.Deg2Rad)));
 
         old.y += value;
         gameObject.transform.eulerAngles = old;

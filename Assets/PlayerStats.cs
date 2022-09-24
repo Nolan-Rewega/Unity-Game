@@ -37,15 +37,15 @@ public class PlayerStats : MonoBehaviour
     public void setMovementState(int state) {
         switch (state) {
             case 0: // -- Walk
-                setPlayerStats(10.0f, -18.0f, 2.0f);
+                setPlayerStats(8.0f, -18.0f, 2.0f);
                 break;
 
             case 1: // -- Crouch
-                setPlayerStats(13.5f, -15.0f, 1.4f);
+                setPlayerStats(11.5f, -15.0f, 1.4f);
                 break;
 
             case 2: // -- Prone
-                setPlayerStats(20.0f, -12.0f, 0.5f);
+                setPlayerStats(18.0f, -12.0f, 0.5f);
                 break;
 
             default:

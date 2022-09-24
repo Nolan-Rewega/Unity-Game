@@ -12,7 +12,6 @@ public class PlayerMovement : MonoBehaviour
     private INTERACTSTATE interactionState;
     private MOVEMENTSTATE movementState;
 
-
     private GameObject cameraObj;
     private GameObject currPhyObj;
     private GameObject currDoor;
@@ -22,12 +21,18 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector3 mouseDelta;
 
+    private float currMovementModifier;
+    private float prevMovementModifier;
     private float sensitivityMouse;
     private float sensitivityKey;
     private float phyObjDistance;
+    private float currCameraY;
+    private float prevCameraY;
     private float sprint;
 
+    private bool interpolating;
     private float elapsedTime;
+
     private bool recharging;
 
 
@@ -35,10 +40,15 @@ public class PlayerMovement : MonoBehaviour
         interactionState = INTERACTSTATE.IDLE;
         movementState    = MOVEMENTSTATE.WALK;
 
+        currMovementModifier = 1.0f;
+        prevMovementModifier = 1.0f;
         sensitivityMouse =  3.0f;
         sensitivityKey   = 0.01f;
         phyObjDistance   =  1.0f;
-        sprint           =  1.0f;
+        currCameraY   = 1.0f;
+        prevCameraY   = 1.0f;
+        sprint        = 1.0f;
+
 
         raycaster   = gameObject.GetComponent<RayCastSelection>();
         playerStats = gameObject.GetComponent<PlayerStats>();
@@ -65,27 +75,25 @@ public class PlayerMovement : MonoBehaviour
 
             case INTERACTSTATE.DOOR:
                 if (Input.GetKey(KeyCode.E)){
+                    prevMovementModifier = currMovementModifier;
+                    currMovementModifier = 0.5f;
+                    
                     // -- rotate door.
                     Vector3 mouseDir = new Vector3(mouseDelta.x, 0.0f, mouseDelta.y) * Mathf.Deg2Rad;
-                    currDoor.GetComponent<Door>().rotateDoor(gameObject.transform.forward, mouseDir);
+                    currDoor.GetComponent<Door>().rotateDoor(cameraObj.transform.forward, mouseDir);
                 }
-                else if (Input.GetKeyUp(KeyCode.E)) {
+                else{
+                    prevMovementModifier = currMovementModifier;
+                    currMovementModifier = 1.0f;
+
                     interactionState = INTERACTSTATE.IDLE;
-                    currPhyObj   = null;
+                    currDoor   = null;
                 }
                 break;
 
             case INTERACTSTATE.HOLDING:
-                if (Input.GetKeyUp(KeyCode.E)){
-                    // -- Apply a force to the object.
-                    currPhyObj.GetComponent<Rigidbody>().useGravity = true;
-                    currPhyObj.GetComponent<Rigidbody>().AddForce((Vector3.up + cameraObj.transform.forward.normalized) * 100.0f);
 
-                    // -- Drop the object
-                    interactionState = INTERACTSTATE.IDLE;
-                    currDoor     = null;
-                }
-                else {
+                if (Input.GetKey(KeyCode.E)) {
                     // -- Move the Object in front of the player.
                     currPhyObj.transform.position = (cameraObj.transform.forward * phyObjDistance) + cameraObj.transform.position;
 
@@ -95,17 +103,42 @@ public class PlayerMovement : MonoBehaviour
                     else{
                         currPhyObj.transform.eulerAngles += new Vector3(0.0f, -mouseDelta.x, 0.0f);
                     }
-                    
+                }
+                else{
+                    // -- Apply a force to the object.
+                    currPhyObj.GetComponent<Rigidbody>().useGravity = true;
+                    currPhyObj.GetComponent<Rigidbody>().AddForce((Vector3.up + cameraObj.transform.forward.normalized) * 100.0f);
+
+                    // -- Drop the object
+                    interactionState = INTERACTSTATE.IDLE;
+                    currPhyObj = null;
                 }
                 break;
         }
     }
 
     void playerMovement() {
-        float Z = 0, X = 0, Y = 0;
+        float Z = 0, X = 0;
         float angle = cameraObj.transform.eulerAngles.y * Mathf.Deg2Rad;
-        float movementPenalty = (interactionState == INTERACTSTATE.DOOR) ? 0.5f : 1.0f;
+        
+        float sprintModifier = 1.0f;
+        float speedMod = currMovementModifier;
+        float height   = currCameraY;
 
+        // -- Interperalation. Player Speed and Player Camera Height
+        if (interpolating){
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / 0.2f;
+
+            if (t > 1.0f){
+                interpolating = false;
+                elapsedTime = 0.0f;
+            }
+            else {
+                speedMod = Mathf.Lerp(prevMovementModifier, currMovementModifier, t);
+                height   = Mathf.Lerp(prevCameraY, currCameraY, t);
+            }
+        }
 
         // -- Sprint cooldown.
         if (recharging && playerStats.getPlayerStamina() > 25.0f) { 
@@ -113,7 +146,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (Input.GetKey(KeyCode.LeftShift) && playerStats.getPlayerStamina() > 0.0f && !recharging){
             playerStats.setRunningState(true);
-            movementPenalty *= 1.5f;
+            sprintModifier *= 1.5f;
         }
         else if (playerStats.getPlayerStamina() < 0.1f) {
             recharging = true;
@@ -123,62 +156,32 @@ public class PlayerMovement : MonoBehaviour
             playerStats.setRunningState(false);
         }
 
-        // -- YUCKY Changing movementState.
-        switch (movementState) {
-            case MOVEMENTSTATE.WALK:
-                if (Input.GetKeyDown(KeyCode.LeftControl)) { 
-                    movementState = MOVEMENTSTATE.CROUCH;
-                    playerStats.setMovementState(1);
-                    movementPenalty *= 0.6f;
-                }
-                else if (Input.GetKeyDown(KeyCode.C)) { 
-                    movementState = MOVEMENTSTATE.PRONE;
-                    playerStats.setMovementState(2);
-                    movementPenalty *= 0.6f;
-                }
-                Y = 1.0f;
-                movementPenalty *= 1.0f;
-                break;
 
-            case MOVEMENTSTATE.CROUCH:
-                if (Input.GetKeyUp(KeyCode.LeftControl)) { 
-                    movementState = MOVEMENTSTATE.WALK;
-                    playerStats.setMovementState(0);
-                }
-                else if (Input.GetKeyDown(KeyCode.C)) { 
-                    movementState = MOVEMENTSTATE.PRONE;
-                    playerStats.setMovementState(2);
-                }
-                Y = 0.5f;
-                movementPenalty *= 0.6f;
-                break;
+        // -- Change movement state based on key input.
 
-            case MOVEMENTSTATE.PRONE:
-                if (Input.GetKeyUp(KeyCode.C)){
-                    movementState = MOVEMENTSTATE.WALK;
-                    playerStats.setMovementState(0);
-                }
-                else if (Input.GetKeyDown(KeyCode.LeftControl)) { 
-                    movementState = MOVEMENTSTATE.CROUCH;
-                    playerStats.setMovementState(1);
-                }
-                Y = 0.2f;
-                movementPenalty *= 0.3f;
-                break;
+        if ( (Input.GetKeyDown(KeyCode.LeftControl) && movementState == MOVEMENTSTATE.CROUCH) ||
+             (Input.GetKeyDown(KeyCode.C)           && movementState == MOVEMENTSTATE.PRONE ) ){
+            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.0f);
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftControl)) {
+            setMovementState(MOVEMENTSTATE.CROUCH, 0.5f, 0.6f);
+        }
+        else if (Input.GetKeyDown(KeyCode.C)){
+            setMovementState(MOVEMENTSTATE.PRONE, 0.2f, 0.3f);
         }
 
-        Debug.Log(movementPenalty);
+     
         // -- Apply movement modifiers
-        Z += (Input.GetKey(KeyCode.W)) ? sensitivityKey * movementPenalty : 0.0f;
-        Z -= (Input.GetKey(KeyCode.S)) ? sensitivityKey * movementPenalty : 0.0f;
-        X += (Input.GetKey(KeyCode.D)) ? sensitivityKey * movementPenalty : 0.0f;
-        X -= (Input.GetKey(KeyCode.A)) ? sensitivityKey * movementPenalty : 0.0f;
+        Z += (Input.GetKey(KeyCode.W)) ? sensitivityKey * speedMod * sprintModifier : 0.0f;
+        Z -= (Input.GetKey(KeyCode.S)) ? sensitivityKey * speedMod * sprintModifier : 0.0f;
+        X += (Input.GetKey(KeyCode.D)) ? sensitivityKey * speedMod * sprintModifier : 0.0f;
+        X -= (Input.GetKey(KeyCode.A)) ? sensitivityKey * speedMod * sprintModifier : 0.0f;
 
         gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * X - Mathf.Sin(-angle) * Z,
                                                       0.0f,
                                                       Mathf.Sin(-angle) * X + Mathf.Cos(-angle) * Z );
 
-        cameraObj.transform.position = new Vector3(cameraObj.transform.position.x, Y, cameraObj.transform.position.z);
+        cameraObj.transform.position = new Vector3(cameraObj.transform.position.x, height, cameraObj.transform.position.z);
     }
 
 
@@ -193,7 +196,6 @@ public class PlayerMovement : MonoBehaviour
 
             case INTERACTSTATE.IDLE:
                 cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
-
                 break;
 
             case INTERACTSTATE.DOOR:
@@ -224,4 +226,18 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
+    private void setMovementState(MOVEMENTSTATE state, float height, float modifier) {
+        if      (state == MOVEMENTSTATE.WALK)   { playerStats.setMovementState(0); }
+        else if (state == MOVEMENTSTATE.CROUCH) { playerStats.setMovementState(1); }
+        else if (state == MOVEMENTSTATE.PRONE)  { playerStats.setMovementState(2); }
+        movementState = state;
+
+        prevMovementModifier = currMovementModifier;
+        currMovementModifier = modifier;
+
+        prevCameraY = currCameraY;
+        currCameraY = height;
+
+        interpolating = true;
+    }
 }

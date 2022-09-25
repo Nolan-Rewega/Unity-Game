@@ -58,7 +58,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update(){
         mouseDelta = new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f) * sensitivityMouse;
-
+        
         playerMovement();
         playerCamera();
         playerSelection();
@@ -79,8 +79,9 @@ public class PlayerMovement : MonoBehaviour
                     currMovementModifier = 0.5f;
                     
                     // -- rotate door.
-                    Vector3 mouseDir = new Vector3(mouseDelta.x, 0.0f, mouseDelta.y) * Mathf.Deg2Rad;
-                    currDoor.GetComponent<Door>().rotateDoor(cameraObj.transform.forward, mouseDir);
+                    Vector3 mouseDir = new Vector3(-mouseDelta.x, 0.0f, -mouseDelta.y);
+                    Vector3 cameraForward = new Vector3(cameraObj.transform.forward.x, 0.0f, cameraObj.transform.forward.z);
+                    currDoor.GetComponent<Door>().rotateDoor(cameraForward, mouseDir);
                 }
                 else{
                     prevMovementModifier = currMovementModifier;

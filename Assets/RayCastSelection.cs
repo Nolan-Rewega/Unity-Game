@@ -54,7 +54,6 @@ public class RayCastSelection : MonoBehaviour
         
         // -- Enforce maximum pick up range
         float distance = (hitObject.transform.position - gameObject.transform.position).magnitude;
-        //Debug.Log(distance);
 
 
         if (hitObject.tag == "Collectable"){

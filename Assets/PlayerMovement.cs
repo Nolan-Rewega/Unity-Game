@@ -28,7 +28,6 @@ public class PlayerMovement : MonoBehaviour
     private float phyObjDistance;
     private float currCameraY;
     private float prevCameraY;
-    private float sprint;
 
     private bool interpolating;
     private float elapsedTime;
@@ -47,7 +46,6 @@ public class PlayerMovement : MonoBehaviour
         phyObjDistance   =  1.0f;
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
-        sprint        = 1.0f;
 
 
         raycaster   = gameObject.GetComponent<RayCastSelection>();
@@ -147,7 +145,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (Input.GetKey(KeyCode.LeftShift) && playerStats.getPlayerStamina() > 0.0f && !recharging){
             playerStats.setRunningState(true);
-            sprintModifier *= 1.5f;
+            sprintModifier *= 1.75f;
         }
         else if (playerStats.getPlayerStamina() < 0.1f) {
             recharging = true;

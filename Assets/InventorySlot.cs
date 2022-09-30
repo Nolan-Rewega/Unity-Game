@@ -2,16 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
-public class InventorySlot : MonoBehaviour
+public class InventorySlot : MonoBehaviour, IPointerClickHandler
 {
     private Image itemIcon;
     private TextMeshProUGUI itemName;
     private TextMeshProUGUI itemAmount;
 
-    void Start(){
+    private int slotNumber;
 
+    void Awake(){
+        slotNumber = gameObject.transform.parent.childCount - 1;
         Transform[] children = gameObject.transform.GetComponentsInChildren<Transform>();
         
         // -- Locate Slot Components.
@@ -42,5 +45,13 @@ public class InventorySlot : MonoBehaviour
         itemAmount.text = "";
     }
 
+    public void OnPointerClick(PointerEventData eventData) {
+        if (eventData.button == PointerEventData.InputButton.Left){
+            InventorySystem.Entity.itemLeftClick(slotNumber);
+        }
+        else if (eventData.button == PointerEventData.InputButton.Right) {
+            InventorySystem.Entity.itemRightClick(slotNumber);
+        }
+    }
 
 }

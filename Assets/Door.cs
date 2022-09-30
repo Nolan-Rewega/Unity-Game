@@ -25,7 +25,7 @@ public class Door : MonoBehaviour
     }
 
     public void action() {
-        // -- Tell the player what door to use
+        // -- Tell the player that we are now rotating this door.
         GameObject.Find("Player").GetComponent<PlayerMovement>().updateDoorMode(gameObject);
     }
 

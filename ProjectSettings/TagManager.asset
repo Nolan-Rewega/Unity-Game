@@ -4,9 +4,11 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - Collectable
-  - Interactable
   - Physics
+  - Battery
+  - Door
+  - Flashlight
+  - Lantern
   layers:
   - Default
   - TransparentFX

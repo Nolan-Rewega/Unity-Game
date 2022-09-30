@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Lantern : MonoBehaviour
+public class Lantern : MonoBehaviour, SelectableInterface
 {
-   // [SerializeField] private float extinguishTime;
+    // [SerializeField] private float extinguishTime;
+    [SerializeField] private ItemData referenceData;
 
-    private bool toggled;
+    private bool hasLantern;
     private int matches;
     
     // -- Unity Objects and components
@@ -22,49 +23,74 @@ public class Lantern : MonoBehaviour
     void Start(){
         player = GameObject.Find("Player");
         playerCamera = GameObject.Find("Player Camera");
-        lightComponent = gameObject.GetComponent<Light>();
+        lightComponent = gameObject.transform.GetChild(0).GetComponent<Light>();
 
         matches = 10;
-        toggled = false;
-        lightComponent.intensity = 0.0f;
+        lightComponent.enabled = false;
+        hasLantern = false;
+
+        // -- Generate initial flicker intensity and duration.
+        elapsedTime = 0.0f;
+        flickerIntesity = 0.8f;
+        flickerDuration = 0.5f;
     }
 
 
     void Update(){
 
-        if (Input.GetKeyDown(KeyCode.F) && !toggled && matches > 0){
-            // -- Play match lighting animation.
-            toggled = true;
-            matches--;
-            lightComponent.intensity = 0.8f;
+        if (Input.GetKeyDown(KeyCode.F) && hasLantern && matches > 0){
+            lightComponent.enabled = !lightComponent.enabled;
 
-            // -- Generate initial flicker intensity and duration.
-            elapsedTime = 0.0f;
-            flickerIntesity = Random.Range(0.2f, 0.8f);
-            flickerDuration = Random.Range(0.1f, 0.5f);
-        }
-        else if (Input.GetKeyDown(KeyCode.F) && toggled) {
-            // -- Play extinguish animation.
-            toggled = false;
-            lightComponent.intensity = 0.0f;
-        }
-
-
-        if (toggled) {
-            elapsedTime += Time.deltaTime;
-            float t = elapsedTime / flickerDuration;
-
-            if (t > 1.0f ){
-                flickerIntesity = Random.Range(0.4f, 0.8f);
-                flickerDuration = Random.Range(0.1f, 0.3f);
-                elapsedTime = 0.0f;
+            if (lightComponent.enabled) {
+                matches--;
             }
 
-            // -- While on, move the light infront of player, and flicker.
-            gameObject.transform.position = (playerCamera.transform.forward * 0.4f) + player.transform.position + (playerCamera.transform.right.normalized * -0.3f);
-            lightComponent.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t);
+            lightComponent.intensity = (lightComponent.enabled) ? 0.8f : 0.0f;
+        }
 
+        toggleLight();
+    }
+
+    // -- CollectableInterface methods
+    public void use(){
+        // -- Play turn on sounds and animation.
+        lightComponent.enabled = !lightComponent.enabled;
+        if (lightComponent.enabled){
+            matches--;
         }
     }
+
+    public void action(){
+        // -- On Item pickup
+        hasLantern = true;
+        InventorySystem.Entity.add(this);
+
+        // -- Disable mesh collider.
+        gameObject.GetComponent<Rigidbody>().detectCollisions = false;
+        gameObject.GetComponent<BoxCollider>().enabled = false;
+    }
+
+    public ItemData getItemData(){
+        return referenceData;
+    }
+
+
+    private void toggleLight(){
+        if (!lightComponent.enabled || matches <= 0) { return; }
+
+        elapsedTime += Time.deltaTime;
+        float t = elapsedTime / flickerDuration;
+
+        if (t > 1.0f){
+            flickerIntesity = Random.Range(0.4f, 0.8f);
+            flickerDuration = Random.Range(0.1f, 0.3f);
+            elapsedTime = 0.0f;
+        }
+
+        // -- While on, move the light infront of player, and flicker.
+        gameObject.transform.position = (playerCamera.transform.forward * 0.4f) + player.transform.position + (playerCamera.transform.right.normalized * -0.3f);
+        lightComponent.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t);
+    }
+
 
 }

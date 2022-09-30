@@ -2,14 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Flashlight : MonoBehaviour
+public class Flashlight : MonoBehaviour, SelectableInterface
 {
-
+    [SerializeField] private ItemData referenceData;
     [SerializeField] private float energyDrainRate;
     [SerializeField] private float energyCap;
     [SerializeField] private float energy;
 
-    private bool toggled;
+    private bool hasFlashlight;
 
     // -- GameObjects and Components 
     private GameObject playerCamera;
@@ -21,75 +21,95 @@ public class Flashlight : MonoBehaviour
     private float flickerIntensity;
     private float currUpperLimit;
 
-    void Start(){
+    void Start() {
         playerCamera = GameObject.Find("Player Camera");
         lightComponent = gameObject.GetComponent<Light>();
 
-        toggled = false;
-        lightComponent.intensity = 0.0f;
+        hasFlashlight = false;
+        lightComponent.enabled = false;
+
+        // -- Initial flicker intensity and duration.
+        elapsedTime    = 0.0f;
+        currUpperLimit = 1.0f;
+        flickerIntensity = 1.0f;
+        flickerDuration  = 0.0f;
     }
 
 
-    void Update(){
+    void Update() {
+
+        if (Input.GetKeyDown(KeyCode.F) && hasFlashlight) {
+            // -- Play turn on sounds and animation.
+            lightComponent.enabled = !lightComponent.enabled;
+        }
+
+        toggleLight();
+
+    }
+
+    private void toggleLight() {
+        
+        if (!lightComponent.enabled ) { return; }
+
         // -- Calculate upper intensity limit
         float upperLimit = Mathf.Clamp((energy / energyCap + 0.3f), 0.4f, 1.0f);
         float lowerLimit = upperLimit - (0.4f * Mathf.Clamp((1.0f - (energy / energyCap + 0.2f)), 0.0f, 1.0f));
 
-        //Debug.Log("UPPER: " +  upperLimit + " LOWER: " + lowerLimit);
         // -- Update flashlights position
-        gameObject.transform.position = playerCamera.transform.position;
+        gameObject.transform.position    = playerCamera.transform.position;
         gameObject.transform.eulerAngles = playerCamera.transform.eulerAngles;
 
-        if (Input.GetKeyDown(KeyCode.F) && !toggled){
-            // -- Play turn on sounds and animation.
-            toggled = true;
-            lightComponent.intensity = 1.0f;
+        // -- Drain Battery.
+        energy -= energyDrainRate * Time.deltaTime;
 
-            // -- Generate initial flicker intensity and duration.
-            elapsedTime = 0.0f;
-            currUpperLimit = upperLimit;
-            flickerIntensity = Random.Range(lowerLimit, upperLimit);
-            flickerDuration  = Random.Range(0.1f, 0.5f * (energy / energyCap + 0.1f));
-        }
-        else if (Input.GetKeyDown(KeyCode.F) && toggled) {
-            // -- Play turn of sounds and animation.
-            toggled = false;
+        elapsedTime += Time.deltaTime;
+        float t = elapsedTime / flickerDuration;
+
+        if (energy <= 0.0f){
+            // -- play fizzle sound.
             lightComponent.intensity = 0.0f;
         }
-
-
-
-        // -- battery drainage.
-        if (toggled) {
-            energy -= energyDrainRate * Time.deltaTime;
-
-            elapsedTime += Time.deltaTime;
-            float t = elapsedTime / flickerDuration;
-
-            if (energy <= 0.0f){
-                // -- play fizzle sound.
-                toggled = false;
-                lightComponent.intensity = 0.0f;
+        else{
+            if (t > 1.0f){
+                elapsedTime    = 0.0f;
+                currUpperLimit = upperLimit;
+                flickerIntensity = Random.Range(lowerLimit, upperLimit);
+                flickerDuration  = Random.Range(0.1f, 0.5f * (energy / energyCap + 0.1f));
             }
-            else{
-                if (t > 1.0f){
-                    elapsedTime = 0.0f;
-                    currUpperLimit = upperLimit;
-                    flickerIntensity = Random.Range(lowerLimit, upperLimit);
-                    flickerDuration = Random.Range(0.1f, 0.5f * (energy / energyCap + 0.1f));
-                }
 
-                lightComponent.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t);
-            }
+            lightComponent.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t);
         }
+  
     }
 
-    public float getEnergy() { 
-        return energy; 
+    public float getEnergy() {
+        return energy;
     }
 
     public void increaseEnergy(float value) {
         energy = Mathf.Min(energy + value, energyCap);
+    }
+
+
+    // -- CollectableInterface methods
+    public void use() {
+        // -- Play turn on sounds and animation.
+        lightComponent.enabled = !lightComponent.enabled;
+    }
+
+    public void action() {
+        // -- On Item pickup
+        hasFlashlight = true;
+        InventorySystem.Entity.add(this);
+
+        // -- Disable mesh collider.
+        gameObject.GetComponent<Rigidbody>().detectCollisions = false;
+        gameObject.GetComponent<CapsuleCollider>().enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = false;
+    }
+
+    public ItemData getItemData() {
+        return referenceData;
     }
 
 

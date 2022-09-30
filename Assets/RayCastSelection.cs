@@ -55,19 +55,28 @@ public class RayCastSelection : MonoBehaviour
         // -- Enforce maximum pick up range
         float distance = (hitObject.transform.position - gameObject.transform.position).magnitude;
 
-
-        if (hitObject.tag == "Collectable"){
-            if (distance > pickUpRange) { return; }
+        // -- I need a better wau
+        if (distance > pickUpRange) { return; }
+        if (hitObject.tag == "Battery") {
             hitObject.GetComponent<Battery>().action();
         }
-        else if (hitObject.tag == "Interactable"){
+        else if (hitObject.tag == "Flashlight") {
+            hitObject.GetComponent<Flashlight>().action();
+        }
+        else if (hitObject.tag == "Lantern") {
+            hitObject.GetComponent<Lantern>().action();
+
+        }
+
+        if (distance > 3.0f) { return; }
+        else if (hitObject.tag == "Door"){
             // -- Enter Interaction mode on press.
-            if (distance > 3.0f) { return; }
             hitObject.GetComponent<Door>().action();
         }
+
+        if (distance > 2.0f) { return; }
         else if (hitObject.tag == "Physics"){
             // -- Enter enter carry mode on press
-            if (distance > 2.0f) { return; }
             hitObject.GetComponent<PhysicsObject>().action();
         }
 

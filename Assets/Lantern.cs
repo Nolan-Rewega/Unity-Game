@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
+
 
 public class Lantern : MonoBehaviour, SelectableInterface
 {
@@ -13,7 +15,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
     // -- Unity Objects and components
     private GameObject player;
     private GameObject playerCamera;
-    private Light lightComponent;
+    private HDAdditionalLightData lightComponent;
 
     // -- Interpolation properties.
     private float elapsedTime;
@@ -23,7 +25,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
     void Start(){
         player = GameObject.Find("Player");
         playerCamera = GameObject.Find("Player Camera");
-        lightComponent = gameObject.transform.GetChild(0).GetComponent<Light>();
+        lightComponent = gameObject.transform.GetChild(0).GetComponent<HDAdditionalLightData>();
 
         matches = 10;
         lightComponent.enabled = false;
@@ -88,8 +90,10 @@ public class Lantern : MonoBehaviour, SelectableInterface
         }
 
         // -- While on, move the light infront of player, and flicker.
+        //gameObject.transform.eulerAngles = playerCamera.transform.eulerAngles + new Vector3(180.0f, 0.0f, 0.0f);
         gameObject.transform.position = (playerCamera.transform.forward * 0.4f) + player.transform.position + (playerCamera.transform.right.normalized * -0.3f);
-        lightComponent.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t);
+
+        lightComponent.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t) * 500.0f;
     }
 
 

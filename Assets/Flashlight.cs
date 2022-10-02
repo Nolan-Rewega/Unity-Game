@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 
 public class Flashlight : MonoBehaviour, SelectableInterface
 {
@@ -13,7 +14,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
 
     // -- GameObjects and Components 
     private GameObject playerCamera;
-    private Light lightComponent;
+    private HDAdditionalLightData lightComponent;
 
     // -- Interpolation properties.
     private float elapsedTime;
@@ -23,7 +24,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
 
     void Start() {
         playerCamera = GameObject.Find("Player Camera");
-        lightComponent = gameObject.GetComponent<Light>();
+        lightComponent = gameObject.GetComponent<HDAdditionalLightData>();
 
         hasFlashlight = false;
         lightComponent.enabled = false;
@@ -77,7 +78,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
                 flickerDuration  = Random.Range(0.1f, 0.5f * (energy / energyCap + 0.1f));
             }
 
-            lightComponent.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t);
+            lightComponent.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t) * 1200.0f;
         }
   
     }

@@ -7,7 +7,7 @@ public class PlayerMovement : MonoBehaviour
 
     // -- Private attributes.
     private enum INTERACTSTATE { IDLE, DOOR, HOLDING };
-    private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN };
+    private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN, IDLE };
 
     private INTERACTSTATE interactionState;
     private MOVEMENTSTATE movementState;
@@ -37,8 +37,10 @@ public class PlayerMovement : MonoBehaviour
     private float currDuration;
     private float elapsedTime;
 
+    private float idleTime;
 
     private bool recharging;
+    private bool isLightSrcOn;
 
 
     void Start(){
@@ -53,6 +55,10 @@ public class PlayerMovement : MonoBehaviour
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
 
+        idleTime    = 0.0f;
+        elapsedTime = 0.0f;
+
+        isLightSrcOn = false;
 
         raycaster   = gameObject.GetComponent<RayCastSelection>();
         playerStats = gameObject.GetComponent<PlayerStats>();
@@ -63,6 +69,7 @@ public class PlayerMovement : MonoBehaviour
     void Update(){
         mouseDelta = sensitivityMouse * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
 
+        checkStealthMode();
         checkPlayerStamina();
         modifyPlayerMovement(); 
 
@@ -86,6 +93,12 @@ public class PlayerMovement : MonoBehaviour
         // -- Disable gravity
         currPhyObj.GetComponent<Rigidbody>().useGravity = false;
     }
+
+    public void setLightSrcOn(bool value) {
+        Debug.Log("SET TO: " + value);
+        isLightSrcOn = value;
+    }
+
 
 
 
@@ -143,27 +156,27 @@ public class PlayerMovement : MonoBehaviour
 
 
     private void modifyPlayerMovement() {
+        // -- Cannot change state while out of breath.
+        if (recharging) { return; }
 
         // -- Change movement state based on key input.
         //    TODO: Expand to full state machine.
         if (( Input.GetKeyDown(KeyCode.LeftControl) && movementState == MOVEMENTSTATE.CROUCH) ||
             ( Input.GetKeyDown(KeyCode.C)           && movementState == MOVEMENTSTATE.PRONE )    ){
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f,0.3f);
+            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f,0.2f);
         }
-        else if (Input.GetKeyDown(KeyCode.LeftShift) && Input.GetKey(KeyCode.W)) {
-            // -- Checking fail condition
-            if (recharging) { return; }
-            setMovementState(MOVEMENTSTATE.RUN, 1.0f, 3.5f, 0.2f);
+        else if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W)) {
+            setMovementState(MOVEMENTSTATE.RUN, 1.0f, 3.0f, 0.2f);
         }
         else if (Input.GetKeyUp(KeyCode.LeftShift) && movementState == MOVEMENTSTATE.RUN || 
                  Input.GetKeyUp(KeyCode.W)         && movementState == MOVEMENTSTATE.RUN    ) {
             setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
         }
         else if (Input.GetKeyDown(KeyCode.LeftControl)){
-            setMovementState(MOVEMENTSTATE.CROUCH, 0.5f, 0.6f, 0.3f);
+            setMovementState(MOVEMENTSTATE.CROUCH, 0.5f, 0.7f, 0.2f);
         }
         else if (Input.GetKeyDown(KeyCode.C)){
-            setMovementState(MOVEMENTSTATE.PRONE, 0.2f, 0.3f, 0.4f);
+            setMovementState(MOVEMENTSTATE.PRONE, 0.2f, 0.3f, 0.3f);
         }
 
     }
@@ -193,16 +206,18 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        // -- Apply movement modifiers
-        Z += (Input.GetKey(KeyCode.W)) ? sensitivityKey * speedMod : 0.0f;
-        Z -= (Input.GetKey(KeyCode.S)) ? sensitivityKey * speedMod : 0.0f;
-        X += (Input.GetKey(KeyCode.D)) ? sensitivityKey * speedMod : 0.0f;
-        X -= (Input.GetKey(KeyCode.A)) ? sensitivityKey * speedMod : 0.0f;
+        // -- Get the direction
+        Z += (Input.GetKey(KeyCode.W)) ? 1.0f : 0.0f;
+        Z -= (Input.GetKey(KeyCode.S)) ? 1.0f : 0.0f;
+        X += (Input.GetKey(KeyCode.D)) ? 1.0f : 0.0f;
+        X -= (Input.GetKey(KeyCode.A)) ? 1.0f : 0.0f;
 
-        // -- Translate the Player.
-        gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * X - Mathf.Sin(-angle) * Z,
+        Vector3 direction = sensitivityKey * speedMod * (new Vector3(X, 0.0f, Z)).normalized;
+        
+        // -- Translate the Player based on the view direction of the camera.
+        gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * direction.x - Mathf.Sin(-angle) * direction.z,
                                                       0.0f,
-                                                      Mathf.Sin(-angle) * X + Mathf.Cos(-angle) * Z );
+                                                      Mathf.Sin(-angle) * direction.x + Mathf.Cos(-angle) * direction.z);
 
         cameraObj.transform.position = new Vector3(cameraObj.transform.position.x, height, cameraObj.transform.position.z);
     }
@@ -226,18 +241,47 @@ public class PlayerMovement : MonoBehaviour
 
     }
 
+    private void checkStealthMode() {
+        // -- Fail conditions.
+        if (movementState != MOVEMENTSTATE.PRONE) {
+            idleTime = 0.0f; // -- Reset StealthMode timer.
+            return; 
+        }
+        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)) {
+            idleTime = 0.0f; // -- Reset StealthMode timer.
+            return; 
+        }
+        if (mouseDelta.sqrMagnitude > 0.0f) {
+            idleTime = 0.0f; // -- Reset StealthMode timer.
+            return; 
+        }
+        // -- Flashlight or Lantern must be off.
+        if (isLightSrcOn) {
+            idleTime = 0.0f;
+            return;
+        }
+
+        idleTime += Time.deltaTime;
+        float t = idleTime / 2.0f;
+
+        if (t > 1.0f) {
+            // -- In stealth mode. starts decreasing sanity. increase stealth level alot
+            Debug.Log("STEALTH MODE. ");
+            playerStats.setStealthLevel(0.1f);
+        }
+    }
 
     private void checkPlayerStamina() {
         if (playerStats.getPlayerStamina() < 0.1f){
             recharging = true;
 
-            // -- If we run out of stamina while running then, slow down.
-            if (movementState == MOVEMENTSTATE.RUN) {
-                setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.1f);
-            }
+            // -- Change to a slow state.
+            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 0.4f, 0.3f);
 
         }
         else if (recharging && playerStats.getPlayerStamina() > 25.0f) {
+            // -- Return to normal speed.
+            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
             recharging = false;
         }
     }
@@ -245,10 +289,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void setMovementState(MOVEMENTSTATE state, float height, float modifier, float lerpDuration) {
         // -- Tell playerStats the new MOVEMENTSTATE.
-        if      (state == MOVEMENTSTATE.WALK)   { playerStats.setMovementState(0); }
-        else if (state == MOVEMENTSTATE.CROUCH) { playerStats.setMovementState(1); }
-        else if (state == MOVEMENTSTATE.PRONE)  { playerStats.setMovementState(2); }
-        else if (state == MOVEMENTSTATE.RUN)    { playerStats.setMovementState(0); }
+        if      (state == MOVEMENTSTATE.WALK)   { playerStats.setStealthLevel(2.0f); }
+        else if (state == MOVEMENTSTATE.CROUCH) { playerStats.setStealthLevel(1.0f); }
+        else if (state == MOVEMENTSTATE.PRONE)  { playerStats.setStealthLevel(0.4f); }
+        else if (state == MOVEMENTSTATE.RUN)    { playerStats.setStealthLevel(4.0f); }
 
         // -- Tell playerStats if the player is running or not.
         if (state == MOVEMENTSTATE.RUN) { playerStats.setRunningState(true); } 

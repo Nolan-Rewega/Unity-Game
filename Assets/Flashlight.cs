@@ -13,6 +13,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
     private bool hasFlashlight;
 
     // -- GameObjects and Components 
+    private PlayerMovement player;
     private GameObject playerCamera;
     private HDAdditionalLightData lightComponent;
 
@@ -23,6 +24,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
     private float currUpperLimit;
 
     void Start() {
+        player = GameObject.Find("Player").GetComponent<PlayerMovement>();
         playerCamera = GameObject.Find("Player Camera");
         lightComponent = gameObject.GetComponent<HDAdditionalLightData>();
 
@@ -42,6 +44,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
         if (Input.GetKeyDown(KeyCode.F) && hasFlashlight) {
             // -- Play turn on sounds and animation.
             lightComponent.enabled = !lightComponent.enabled;
+            player.setLightSrcOn(lightComponent.enabled);
         }
 
         toggleLight();
@@ -96,6 +99,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
     public void use() {
         // -- Play turn on sounds and animation.
         lightComponent.enabled = !lightComponent.enabled;
+        player.setLightSrcOn(lightComponent.enabled);
     }
 
     public void action() {

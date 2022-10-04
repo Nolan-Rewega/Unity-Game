@@ -14,6 +14,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
     
     // -- Unity Objects and components
     private GameObject player;
+    private PlayerMovement playerMovement;
     private GameObject playerCamera;
     private HDAdditionalLightData lightComponent;
 
@@ -25,6 +26,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
     void Start(){
         player = GameObject.Find("Player");
         playerCamera = GameObject.Find("Player Camera");
+        playerMovement = player.GetComponent<PlayerMovement>();
         lightComponent = gameObject.transform.GetChild(0).GetComponent<HDAdditionalLightData>();
 
         matches = 10;
@@ -42,6 +44,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
 
         if (Input.GetKeyDown(KeyCode.F) && hasLantern && matches > 0){
             lightComponent.enabled = !lightComponent.enabled;
+            playerMovement.setLightSrcOn(lightComponent.enabled);
 
             if (lightComponent.enabled) {
                 matches--;
@@ -57,6 +60,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
     public void use(){
         // -- Play turn on sounds and animation.
         lightComponent.enabled = !lightComponent.enabled;
+        playerMovement.setLightSrcOn(lightComponent.enabled);
         if (lightComponent.enabled){
             matches--;
         }

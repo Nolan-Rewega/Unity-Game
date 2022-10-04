@@ -4,24 +4,26 @@ using UnityEngine;
 
 public class InventoryController : MonoBehaviour
 {
+    private DescriptionOverlay overlay;
     private GameObject inventory;
-    private bool isOpen;
+    private bool isinventoryOpen;
 
-    void Start() {
+    void Awake() {
         inventory = GameObject.Find("Inventory");
+        overlay = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
+
         inventory.SetActive(false);
-        isOpen = false;
+        isinventoryOpen = false;
     }
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.Tab)) {
-            isOpen = !isOpen;
-            inventory.SetActive(isOpen);
-            
+        if (Input.GetKeyDown(KeyCode.Tab) && !overlay.getIsOverlayOpen()) {
+            isinventoryOpen = !isinventoryOpen;
+            inventory.SetActive(isinventoryOpen);
         }
 
         int scrolldelta = (int)Input.mouseScrollDelta.y;
-        if (isOpen && scrolldelta != 0) {
+        if (isinventoryOpen && scrolldelta != 0) {
             InventorySystem.Entity.scrollInventory(scrolldelta);
         }
 

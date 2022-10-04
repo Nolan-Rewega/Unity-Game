@@ -7,7 +7,7 @@ using TMPro;
 
 public class DescriptionOverlay : MonoBehaviour
 {
-    private bool open;
+    private bool isOverlayOpen;
     private float elapsedTime;
     private float forceOpenTime;
 
@@ -16,26 +16,26 @@ public class DescriptionOverlay : MonoBehaviour
 
     // Start is called before the first frame update
     void Start() {
-        forceOpenTime = 2.0f;
+        forceOpenTime = 1.5f;
         elapsedTime = 0.0f;
 
-        open = true;
-        //gameObject.SetActive(false);
+        isOverlayOpen = false;
+        gameObject.SetActive(false);
 
         itemDescription = gameObject.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
         itemSprite = gameObject.transform.GetChild(1).GetComponent<Image>();
     }
 
     void Update() {
-        if (!open) { return; }
+        if (!isOverlayOpen) { return; }
 
-        elapsedTime += Time.deltaTime;
+        elapsedTime += Time.unscaledDeltaTime;
 
         if (elapsedTime > forceOpenTime) {
             if (Input.anyKey) {
-                // -- close.
-                open = false;
+                isOverlayOpen = false;
                 gameObject.SetActive(false);
+                Time.timeScale = 1.0f;
             }
         }
 
@@ -43,18 +43,21 @@ public class DescriptionOverlay : MonoBehaviour
 
     public void DisplayOverlay(ItemData data, bool pauseGame) {
         if (pauseGame) {
-            Debug.Log("SLOW!");
+            Time.timeScale = 0.0f;
         }
+
         // -- Change UI text and icon.
         itemSprite.sprite = data.itemIcon;
         itemDescription.text = data.itemDescription;
 
         elapsedTime = 0.0f;
 
-        open = true;
+        isOverlayOpen = true;
         gameObject.SetActive(true);
 
+    }
+
+    public bool getIsOverlayOpen() {
+        return isOverlayOpen;
     } 
-
-
 }

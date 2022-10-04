@@ -20,13 +20,13 @@ public class InventorySystem : MonoBehaviour
 
     void Awake() {
         Entity = this;
+        overlay = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
+
     }
 
     void Start() {
         displayedSlots = 5;
         firstSlotIndex = 0;
-
-        overlay = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
 
         inventory = new List< List<SelectableInterface> >();
         slots = new InventorySlot[displayedSlots];
@@ -45,7 +45,7 @@ public class InventorySystem : MonoBehaviour
 
         if (index == -1) {
             // -- Display Item Overlay scene.
-            overlay.DisplayOverlay(item.getItemData(), false);
+            overlay.DisplayOverlay(item.getItemData(), true);
             inventory.Add(new List<SelectableInterface>() { item }); 
         }
         else { inventory[index].Add(item); }
@@ -79,7 +79,7 @@ public class InventorySystem : MonoBehaviour
         if (inventory[slot].Count <= 0) { return; }
 
         // -- Display the Item description.
-        overlay.DisplayOverlay(inventory[slot][0].getItemData(), false);
+        overlay.DisplayOverlay(inventory[slot][0].getItemData(), true);
     }
 
 

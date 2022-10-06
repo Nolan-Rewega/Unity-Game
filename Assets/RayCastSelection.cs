@@ -58,13 +58,13 @@ public class RayCastSelection : MonoBehaviour
         // -- I need a better wau
         if (distance > pickUpRange) { return; }
         if (hitObject.tag == "Battery") {
-            hitObject.GetComponent<Battery>().action();
+            hitObject.GetComponent<Battery>().onPickUp();
         }
         else if (hitObject.tag == "Flashlight") {
-            hitObject.GetComponent<Flashlight>().action();
+            hitObject.GetComponent<Flashlight>().onPickUp();
         }
         else if (hitObject.tag == "Lantern") {
-            hitObject.GetComponent<Lantern>().action();
+            hitObject.GetComponent<Lantern>().onPickUp();
 
         }
 

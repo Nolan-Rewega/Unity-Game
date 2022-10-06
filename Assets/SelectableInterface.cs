@@ -5,6 +5,6 @@ using UnityEngine;
 public interface SelectableInterface
 {
     public ItemData getItemData();
-    public void action();
+    public void onPickUp();
     public void use();
 }

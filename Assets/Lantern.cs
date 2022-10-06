@@ -16,7 +16,9 @@ public class Lantern : MonoBehaviour, SelectableInterface
     private GameObject player;
     private PlayerMovement playerMovement;
     private GameObject playerCamera;
-    private HDAdditionalLightData lightComponent;
+
+    private Light lightComponent;
+    private HDAdditionalLightData lighting;
 
     // -- Interpolation properties.
     private float elapsedTime;
@@ -27,8 +29,10 @@ public class Lantern : MonoBehaviour, SelectableInterface
         player = GameObject.Find("Player");
         playerCamera = GameObject.Find("Player Camera");
         playerMovement = player.GetComponent<PlayerMovement>();
-        lightComponent = gameObject.transform.GetChild(0).GetComponent<HDAdditionalLightData>();
 
+        lighting       = gameObject.transform.GetChild(0).GetComponent<HDAdditionalLightData>();
+        lightComponent = gameObject.transform.GetChild(0).GetComponent<Light>();
+        
         matches = 10;
         lightComponent.enabled = false;
         hasLantern = false;
@@ -50,10 +54,18 @@ public class Lantern : MonoBehaviour, SelectableInterface
                 matches--;
             }
 
-            lightComponent.intensity = (lightComponent.enabled) ? 0.8f : 0.0f;
+            lighting.intensity = (lightComponent.enabled) ? 0.8f : 0.0f;
         }
 
         toggleLight();
+        if (hasLantern) {
+            // -- Update flashlights position
+            Vector3 shiftedPosition = playerCamera.transform.position + new Vector3(0.2f, -0.2f, 0.2f);
+            gameObject.transform.position = playerCamera.transform.position + (playerCamera.transform.forward * 0.4f)
+                                            + (playerCamera.transform.up * -0.2f) + (playerCamera.transform.right * 0.2f);
+            gameObject.transform.rotation = playerCamera.transform.rotation;
+        }
+
     }
 
     // -- CollectableInterface methods
@@ -66,7 +78,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
         }
     }
 
-    public void action(){
+    public void onPickUp(){
         // -- On Item pickup
         hasLantern = true;
         InventorySystem.Entity.add(this);
@@ -93,11 +105,7 @@ public class Lantern : MonoBehaviour, SelectableInterface
             elapsedTime = 0.0f;
         }
 
-        // -- While on, move the light infront of player, and flicker.
-        //gameObject.transform.eulerAngles = playerCamera.transform.eulerAngles + new Vector3(180.0f, 0.0f, 0.0f);
-        gameObject.transform.position = (playerCamera.transform.forward * 0.4f) + player.transform.position + (playerCamera.transform.right.normalized * -0.3f);
-
-        lightComponent.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t) * 500.0f;
+        lighting.intensity = Mathf.Lerp(flickerIntesity, 0.8f, t) * 500.0f;
     }
 
 

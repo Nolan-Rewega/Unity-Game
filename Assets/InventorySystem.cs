@@ -17,27 +17,23 @@ public class InventorySystem : MonoBehaviour
     private DescriptionOverlay overlay;
 
 
-
     void Awake() {
         Entity = this;
         overlay = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
 
-    }
-
-    void Start() {
         displayedSlots = 5;
         firstSlotIndex = 0;
 
-        inventory = new List< List<SelectableInterface> >();
+        inventory = new List<List<SelectableInterface>>();
         slots = new InventorySlot[displayedSlots];
 
-        for (int i = 0; i < displayedSlots; i++) {
+        for (int i = 0; i < displayedSlots; i++){
             // -- Instantiate as Children.
             slots[i] = Instantiate(slotPrefab, gameObject.transform).GetComponent<InventorySlot>();
         }
 
-    }
 
+    }
 
 
     public void add(SelectableInterface item) {
@@ -112,6 +108,7 @@ public class InventorySystem : MonoBehaviour
     // -- O(n), but n is no more than 100.
     private int searchForItemList(ItemData item) {
         string name = item.itemName;
+        Debug.Log(inventory.Count);
         for(int i = 0; i < inventory.Count; i++) {
             if (inventory[i][0].getItemData().itemName == name){
                 return i;

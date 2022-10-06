@@ -6,11 +6,13 @@ public class InventoryController : MonoBehaviour
 {
     private DescriptionOverlay overlay;
     private GameObject inventory;
+    private PlayerMovement player;
     private bool isinventoryOpen;
 
     void Awake() {
         inventory = GameObject.Find("Inventory");
-        overlay = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
+        overlay   = GameObject.Find("Item Overlay").GetComponent<DescriptionOverlay>();
+        player    = GameObject.Find("Player").GetComponent<PlayerMovement>();
 
         inventory.SetActive(false);
         isinventoryOpen = false;
@@ -19,6 +21,9 @@ public class InventoryController : MonoBehaviour
     void Update() {
         if (Input.GetKeyDown(KeyCode.Tab) && !overlay.getIsOverlayOpen()) {
             isinventoryOpen = !isinventoryOpen;
+
+            // -- Stop movement if inventory is open.
+            player.setStopPlayerCamera(isinventoryOpen);
             inventory.SetActive(isinventoryOpen);
         }
 

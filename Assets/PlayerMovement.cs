@@ -7,7 +7,7 @@ public class PlayerMovement : MonoBehaviour
 
     // -- Private attributes.
     private enum INTERACTSTATE { IDLE, DOOR, HOLDING };
-    private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN, IDLE };
+    private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN };
 
     private INTERACTSTATE interactionState;
     private MOVEMENTSTATE movementState;
@@ -27,6 +27,9 @@ public class PlayerMovement : MonoBehaviour
     private float interpolatedHeight;
     private float interpolatedSpeed;
 
+    private bool stopPlayerMovement;
+    private bool stopPlayerCamera;
+
     private float sensitivityMouse;
     private float sensitivityKey;
     private float phyObjDistance;
@@ -39,18 +42,24 @@ public class PlayerMovement : MonoBehaviour
 
     private float idleTime;
 
-    private bool recharging;
+    private bool outOfBreath;
     private bool isLightSrcOn;
+
+
+
 
 
     void Start(){
         interactionState = INTERACTSTATE.IDLE;
         movementState    = MOVEMENTSTATE.WALK;
 
+        stopPlayerMovement = false;
+        stopPlayerCamera   = false;
+
         currMovementModifier = 1.0f;
         prevMovementModifier = 1.0f;
-        sensitivityMouse =  3.0f;
-        sensitivityKey   = 0.01f;
+        sensitivityMouse =  600.0f;
+        sensitivityKey   =  1.0f;
         phyObjDistance   =  1.0f;
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
@@ -67,14 +76,15 @@ public class PlayerMovement : MonoBehaviour
 
 
     void Update(){
-        mouseDelta = sensitivityMouse * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
+        mouseDelta = sensitivityMouse * Time.deltaTime * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
 
         checkStealthMode();
         checkPlayerStamina();
-        modifyPlayerMovement(); 
+        modifyPlayerMovement();
 
-        movePlayer();
-        moveCamera();
+        if (!stopPlayerMovement) { movePlayer(); }
+        if (!stopPlayerCamera)   { moveCamera(); }
+
         playerSelection();
 
     }
@@ -95,10 +105,16 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void setLightSrcOn(bool value) {
-        Debug.Log("SET TO: " + value);
         isLightSrcOn = value;
     }
 
+    public void setStopPlayerMovement(bool value) {
+        stopPlayerMovement = value;
+    }
+
+    public void setStopPlayerCamera(bool value) {
+        stopPlayerCamera = value;
+    }
 
 
 
@@ -157,13 +173,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void modifyPlayerMovement() {
         // -- Cannot change state while out of breath.
-        if (recharging) { return; }
+        if (outOfBreath) { return; }
 
         // -- Change movement state based on key input.
         //    TODO: Expand to full state machine.
         if (( Input.GetKeyDown(KeyCode.LeftControl) && movementState == MOVEMENTSTATE.CROUCH) ||
             ( Input.GetKeyDown(KeyCode.C)           && movementState == MOVEMENTSTATE.PRONE )    ){
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f,0.2f);
+            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
         }
         else if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W)) {
             setMovementState(MOVEMENTSTATE.RUN, 1.0f, 3.0f, 0.2f);
@@ -212,7 +228,7 @@ public class PlayerMovement : MonoBehaviour
         X += (Input.GetKey(KeyCode.D)) ? 1.0f : 0.0f;
         X -= (Input.GetKey(KeyCode.A)) ? 1.0f : 0.0f;
 
-        Vector3 direction = sensitivityKey * speedMod * (new Vector3(X, 0.0f, Z)).normalized;
+        Vector3 direction = sensitivityKey * speedMod * Time.deltaTime * (new Vector3(X, 0.0f, Z)).normalized;
         
         // -- Translate the Player based on the view direction of the camera.
         gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * direction.x - Mathf.Sin(-angle) * direction.z,
@@ -273,16 +289,16 @@ public class PlayerMovement : MonoBehaviour
 
     private void checkPlayerStamina() {
         if (playerStats.getPlayerStamina() < 0.1f){
-            recharging = true;
+            outOfBreath = true;
 
             // -- Change to a slow state.
             setMovementState(MOVEMENTSTATE.WALK, 1.0f, 0.4f, 0.3f);
 
         }
-        else if (recharging && playerStats.getPlayerStamina() > 25.0f) {
+        else if (outOfBreath && playerStats.getPlayerStamina() > 25.0f) {
             // -- Return to normal speed.
             setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
-            recharging = false;
+            outOfBreath = false;
         }
     }
 

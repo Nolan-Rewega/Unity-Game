@@ -17,7 +17,7 @@ public class Battery : MonoBehaviour, SelectableInterface
         return referenceData;
     }
 
-    public void action() {
+    public void onPickUp() {
         // -- Adds Battery to the players inventory
         InventorySystem.Entity.add(this);
 

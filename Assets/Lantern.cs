@@ -4,17 +4,17 @@ using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
 
-public class Lantern : MonoBehaviour, SelectableInterface
+public class Lantern : MonoBehaviour, SelectableInterface, UsableItemInterface, PlayerLightSource
 {
     // [SerializeField] private float extinguishTime;
     [SerializeField] private ItemData referenceData;
 
-    private bool hasLantern;
+    private bool isEquiped;
+    private bool pickedUp;
+
     private int matches;
     
     // -- Unity Objects and components
-    private GameObject player;
-    private PlayerMovement playerMovement;
     private GameObject playerCamera;
 
     private Light lightComponent;
@@ -25,75 +25,95 @@ public class Lantern : MonoBehaviour, SelectableInterface
     private float flickerIntesity;
     private float flickerDuration;
 
-    void Start(){
-        player = GameObject.Find("Player");
+
+    void Start(){ 
         playerCamera = GameObject.Find("Player Camera");
-        playerMovement = player.GetComponent<PlayerMovement>();
 
         lighting       = gameObject.transform.GetChild(0).GetComponent<HDAdditionalLightData>();
         lightComponent = gameObject.transform.GetChild(0).GetComponent<Light>();
         
         matches = 10;
-        lightComponent.enabled = false;
-        hasLantern = false;
+        lightComponent.enabled = true;
 
-        // -- Generate initial flicker intensity and duration.
-        elapsedTime = 0.0f;
-        flickerIntesity = 0.8f;
-        flickerDuration = 0.5f;
+        isEquiped = false;
+        pickedUp = false;
     }
 
 
     void Update(){
+        // -- Do nothing until the player picks up the Lantern.
+        if (!pickedUp) { return; }
 
-        if (Input.GetKeyDown(KeyCode.F) && hasLantern && matches > 0){
+        if (Input.GetKeyDown(KeyCode.F) && isEquiped && matches > 0){
             lightComponent.enabled = !lightComponent.enabled;
-            playerMovement.setLightSrcOn(lightComponent.enabled);
 
-            if (lightComponent.enabled) {
-                matches--;
-            }
-
-            lighting.intensity = (lightComponent.enabled) ? 0.8f : 0.0f;
+            matches            -= (lightComponent.enabled) ?    1 :    0;
+            lighting.intensity  = (lightComponent.enabled) ? 0.8f : 0.0f;
         }
 
         toggleLight();
-        if (hasLantern) {
-            // -- Update flashlights position
-            Vector3 shiftedPosition = playerCamera.transform.position + new Vector3(0.2f, -0.2f, 0.2f);
-            gameObject.transform.position = playerCamera.transform.position + (playerCamera.transform.forward * 0.4f)
-                                            + (playerCamera.transform.up * -0.2f) + (playerCamera.transform.right * 0.2f);
-            gameObject.transform.rotation = playerCamera.transform.rotation;
-        }
 
     }
 
-    // -- CollectableInterface methods
+    // -- PlayerLightSource methods
+    public bool getIsLightSourceOn() {
+        return lightComponent.enabled;
+    }
+    public void equip(){ // called by LightDetectionManager
+        // -- Play equip sounds and animation.
+        isEquiped = true;
+        lightComponent.enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = true;
+    }
+    public void unequip(){ // called by LightDetectionManager
+        // -- Play unequip sounds and animation.
+        isEquiped = false;
+        lightComponent.enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = false;
+    }
+
+
+
+    // -- UsableItemInterface methods
     public void use(){
         // -- Play turn on sounds and animation.
-        lightComponent.enabled = !lightComponent.enabled;
-        playerMovement.setLightSrcOn(lightComponent.enabled);
-        if (lightComponent.enabled){
-            matches--;
-        }
+
+        PlayerLightSource src = (!isEquiped) ? this : null;
+        LightDetectionManager.Entity.setPlayerLightSource(src);
     }
-
-    public void onPickUp(){
-        // -- On Item pickup
-        hasLantern = true;
-        InventorySystem.Entity.add(this);
-
-        // -- Disable mesh collider.
-        gameObject.GetComponent<Rigidbody>().detectCollisions = false;
-        gameObject.GetComponent<BoxCollider>().enabled = false;
-    }
-
     public ItemData getItemData(){
         return referenceData;
     }
 
 
+    // -- SelectableInterface methods
+    public void onSelection(Vector3 playerPos){
+        float distance = Vector3.Distance(playerPos, gameObject.transform.position);
+        if (distance > 2.0f) { return; }
+
+        pickedUp = true;
+        lightComponent.enabled = false;
+
+        InventoryManager.Entity.add(this);
+
+        // -- Disable mesh collider.
+        gameObject.GetComponent<Rigidbody>().detectCollisions = false;
+        gameObject.GetComponent<BoxCollider>().enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = false;
+    }
+
+
+
     private void toggleLight(){
+
+        // -- Update flashlights position
+        Vector3 shiftedPosition = playerCamera.transform.position + new Vector3(0.2f, -0.2f, 0.2f);
+        gameObject.transform.position = playerCamera.transform.position + (playerCamera.transform.forward * 0.4f)
+                                        + (playerCamera.transform.up * -0.2f) + (playerCamera.transform.right * 0.2f);
+        gameObject.transform.rotation = playerCamera.transform.rotation;
+
+
+        // -- If light is off do nothing.
         if (!lightComponent.enabled || matches <= 0) { return; }
 
         elapsedTime += Time.deltaTime;

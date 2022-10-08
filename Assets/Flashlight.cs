@@ -3,19 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
-public class Flashlight : MonoBehaviour, SelectableInterface
+public class Flashlight : MonoBehaviour, SelectableInterface, UsableItemInterface, PlayerLightSource
 {
     [SerializeField] private ItemData referenceData;
     [SerializeField] private float energyDrainRate;
     [SerializeField] private float energyCap;
     [SerializeField] private float energy;
 
-    private bool hasFlashlight;
+    private bool isEquiped;
+    private bool pickedUp;
 
     // -- GameObjects and Components 
-    private PlayerMovement player;
     private GameObject playerCamera;
-
     private Light lightComponent;
     private HDAdditionalLightData lighting;
 
@@ -26,13 +25,14 @@ public class Flashlight : MonoBehaviour, SelectableInterface
     private float currUpperLimit;
 
     void Start() {
-        player = GameObject.Find("Player").GetComponent<PlayerMovement>();
         playerCamera = GameObject.Find("Player Camera");
 
         lighting = gameObject.GetComponent<HDAdditionalLightData>();
         lightComponent = gameObject.GetComponent<Light>();
 
-        hasFlashlight = false;
+        isEquiped = false;
+        pickedUp  = false;
+
         lightComponent.enabled = false;
         lighting.intensity = 0.0f;
 
@@ -45,27 +45,45 @@ public class Flashlight : MonoBehaviour, SelectableInterface
 
 
     void Update() {
+        // -- Do nothing until the player picks up the Lantern.
+        if (!pickedUp) { return; }
 
-        if (Input.GetKeyDown(KeyCode.F) && hasFlashlight) {
+
+        if (Input.GetKeyDown(KeyCode.F) && isEquiped) {
             // -- Play turn on sounds and animation.
             lightComponent.enabled = !lightComponent.enabled;
-            player.setLightSrcOn(lightComponent.enabled);
         }
 
         toggleLight();
+    }
 
-        // -- Update flashlights position
-        if (hasFlashlight) {
-            Vector3 shiftedPosition = playerCamera.transform.position + new Vector3(0.2f, -0.2f, 0.2f);
-            gameObject.transform.position = playerCamera.transform.position     + (playerCamera.transform.forward * 0.4f) 
-                                          + (playerCamera.transform.up * -0.2f) + (playerCamera.transform.right   * 0.2f);
-            gameObject.transform.rotation = playerCamera.transform.rotation;
-        }
 
+    public float getEnergy() {
+        return energy;
+    }
+
+    public void increaseEnergy(float value) {
+        energy = Mathf.Min(energy + value, energyCap);
+    }
+
+
+
+    private void updateFlashlightComponents() {
+        // -- Set the light source.
+        PlayerLightSource src = (isEquiped) ? this : null;
+        LightDetectionManager.Entity.setPlayerLightSource(src);
     }
 
     private void toggleLight() {
-        
+
+        // -- Update flashlights position
+        Vector3 shiftedPosition = playerCamera.transform.position + new Vector3(0.2f, -0.2f, 0.2f);
+        gameObject.transform.position = playerCamera.transform.position + (playerCamera.transform.forward * 0.4f)
+                                      + (playerCamera.transform.up * -0.2f) + (playerCamera.transform.right * 0.2f);
+        gameObject.transform.rotation = playerCamera.transform.rotation;
+
+
+        // -- If light is off do nothing.
         if (!lightComponent.enabled ) { return; }
 
         // -- Calculate upper intensity limit
@@ -79,7 +97,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface
         float t = elapsedTime / flickerDuration;
 
         if (energy <= 0.0f){
-            // -- play fizzle sound.
+            // -- play fizzle sound. and animation
             lighting.intensity = 0.0f;
         }
         else{
@@ -95,35 +113,53 @@ public class Flashlight : MonoBehaviour, SelectableInterface
 
     }
 
-    public float getEnergy() {
-        return energy;
+
+    // -- PlayerLightSource methods
+    public bool getIsLightSourceOn(){
+        return lightComponent.enabled;
+    }
+    public void equip() { // called by LightDetectionManager
+        // -- Play equip sounds and animation.
+        isEquiped = true;
+        lightComponent.enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = true;
+    }
+    public void unequip() { // called by LightDetectionManager
+        // -- Play unequip sounds and animation.
+        isEquiped = false;
+        lightComponent.enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = false;
     }
 
-    public void increaseEnergy(float value) {
-        energy = Mathf.Min(energy + value, energyCap);
-    }
 
-
-    // -- CollectableInterface methods
+    // -- UsableItemInterface methods
     public void use() {
         // -- Play turn on sounds and animation.
-        lightComponent.enabled = !lightComponent.enabled;
-        player.setLightSrcOn(lightComponent.enabled);
+
+        PlayerLightSource src = (!isEquiped) ? this : null;
+        LightDetectionManager.Entity.setPlayerLightSource(src);
+
+    }
+    public ItemData getItemData(){
+        return referenceData;
     }
 
-    public void onPickUp() {
-        // -- Add item to player's inventory.
-        hasFlashlight = true;
-        InventorySystem.Entity.add(this);
+
+    // -- SelectableInterface methods
+    public void onSelection(Vector3 playerPos) {
+        float distance = Vector3.Distance(playerPos, gameObject.transform.position);
+        if (distance > 2.0f) { return; }
+
+
+        pickedUp = true;
+        InventoryManager.Entity.add(this);
 
         // -- Disable mesh collider.
         gameObject.GetComponent<Rigidbody>().detectCollisions = false;
         gameObject.GetComponent<CapsuleCollider>().enabled = false;
+        gameObject.GetComponent<MeshRenderer>().enabled = false; 
     }
 
-    public ItemData getItemData() {
-        return referenceData;
-    }
 
 
 }

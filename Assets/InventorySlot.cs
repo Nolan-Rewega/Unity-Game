@@ -47,10 +47,10 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData) {
         if (eventData.button == PointerEventData.InputButton.Left){
-            InventorySystem.Entity.itemLeftClick(slotNumber);
+            InventoryManager.Entity.itemLeftClick(slotNumber);
         }
         else if (eventData.button == PointerEventData.InputButton.Right) {
-            InventorySystem.Entity.itemRightClick(slotNumber);
+            InventoryManager.Entity.itemRightClick(slotNumber);
         }
     }
 

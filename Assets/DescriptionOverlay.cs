@@ -11,7 +11,9 @@ public class DescriptionOverlay : MonoBehaviour
     private float elapsedTime;
     private float forceOpenTime;
 
+
     private TextMeshProUGUI itemDescription;
+    private PlayerMovement player;
     private Image itemSprite;
 
     // Start is called before the first frame update
@@ -24,6 +26,8 @@ public class DescriptionOverlay : MonoBehaviour
 
         itemDescription = gameObject.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
         itemSprite = gameObject.transform.GetChild(1).GetComponent<Image>();
+
+        player = GameObject.Find("Player").GetComponent<PlayerMovement>();
     }
 
     void Update() {
@@ -35,6 +39,10 @@ public class DescriptionOverlay : MonoBehaviour
             if (Input.anyKey) {
                 isOverlayOpen = false;
                 gameObject.SetActive(false);
+
+                player.haltPlayerCamera(false);
+                player.haltPlayerMovement(false);
+
                 Time.timeScale = 1.0f;
             }
         }
@@ -42,6 +50,9 @@ public class DescriptionOverlay : MonoBehaviour
     }
 
     public void DisplayOverlay(ItemData data, bool pauseGame) {
+        player.haltPlayerCamera(true);
+        player.haltPlayerMovement(true);
+
         if (pauseGame) {
             Time.timeScale = 0.0f;
         }

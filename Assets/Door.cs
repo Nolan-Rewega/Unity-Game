@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 
-public class Door : MonoBehaviour
+public class Door : MonoBehaviour, SelectableInterface
 {
     [SerializeField] private float m_maximumAngle;
     [SerializeField] private bool m_locked;
@@ -24,7 +24,15 @@ public class Door : MonoBehaviour
         m_scriptinAction = false;
     }
 
-    public void action() {
+    // -- SelectableInterface method
+    public void onSelection(Vector3 playerPos) {
+        // -- Distance capsule calculation based 
+        //    on the bounding box of the Object.
+        Vector3 ClosestPoint = gameObject.GetComponent<Renderer>().bounds.ClosestPoint(playerPos);
+        float distance = Vector3.Distance(ClosestPoint, playerPos);
+
+        if (distance > 2.0f) { return; }
+
         // -- Tell the player that we are now rotating this door.
         GameObject.Find("Player").GetComponent<PlayerMovement>().updateDoorMode(gameObject);
     }

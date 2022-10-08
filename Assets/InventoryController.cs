@@ -23,13 +23,13 @@ public class InventoryController : MonoBehaviour
             isinventoryOpen = !isinventoryOpen;
 
             // -- Stop movement if inventory is open.
-            player.setStopPlayerCamera(isinventoryOpen);
+            player.haltPlayerCamera(isinventoryOpen);
             inventory.SetActive(isinventoryOpen);
         }
 
         int scrolldelta = (int)Input.mouseScrollDelta.y;
         if (isinventoryOpen && scrolldelta != 0) {
-            InventorySystem.Entity.scrollInventory(scrolldelta);
+            InventoryManager.Entity.scrollInventory(scrolldelta);
         }
 
     }

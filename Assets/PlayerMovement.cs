@@ -27,8 +27,8 @@ public class PlayerMovement : MonoBehaviour
     private float interpolatedHeight;
     private float interpolatedSpeed;
 
-    private bool stopPlayerMovement;
-    private bool stopPlayerCamera;
+    private bool haltedPlayerMovement;
+    private bool haltedPlayerCamera;
 
     private float sensitivityMouse;
     private float sensitivityKey;
@@ -43,7 +43,6 @@ public class PlayerMovement : MonoBehaviour
     private float idleTime;
 
     private bool outOfBreath;
-    private bool isLightSrcOn;
 
 
 
@@ -53,21 +52,19 @@ public class PlayerMovement : MonoBehaviour
         interactionState = INTERACTSTATE.IDLE;
         movementState    = MOVEMENTSTATE.WALK;
 
-        stopPlayerMovement = false;
-        stopPlayerCamera   = false;
+        haltedPlayerMovement = false;
+        haltedPlayerCamera = false;
 
         currMovementModifier = 1.0f;
         prevMovementModifier = 1.0f;
-        sensitivityMouse =  600.0f;
-        sensitivityKey   =  1.0f;
+        sensitivityMouse =  3.0f;
+        sensitivityKey   =  0.01f;
         phyObjDistance   =  1.0f;
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
 
         idleTime    = 0.0f;
         elapsedTime = 0.0f;
-
-        isLightSrcOn = false;
 
         raycaster   = gameObject.GetComponent<RayCastSelection>();
         playerStats = gameObject.GetComponent<PlayerStats>();
@@ -76,14 +73,14 @@ public class PlayerMovement : MonoBehaviour
 
 
     void Update(){
-        mouseDelta = sensitivityMouse * Time.deltaTime * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
+        mouseDelta = sensitivityMouse * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
 
         checkStealthMode();
         checkPlayerStamina();
         modifyPlayerMovement();
 
-        if (!stopPlayerMovement) { movePlayer(); }
-        if (!stopPlayerCamera)   { moveCamera(); }
+        if (!haltedPlayerMovement) { movePlayer(); }
+        if (!haltedPlayerCamera)   { moveCamera(); }
 
         playerSelection();
 
@@ -104,16 +101,15 @@ public class PlayerMovement : MonoBehaviour
         currPhyObj.GetComponent<Rigidbody>().useGravity = false;
     }
 
-    public void setLightSrcOn(bool value) {
-        isLightSrcOn = value;
-    }
 
-    public void setStopPlayerMovement(bool value) {
-        stopPlayerMovement = value;
-    }
 
-    public void setStopPlayerCamera(bool value) {
-        stopPlayerCamera = value;
+    // -- Used by InventoryContorller
+    public void haltPlayerMovement(bool value) {
+        haltedPlayerMovement = value;
+    }
+    // -- Used by InventoryContorller and DescriptionOverlay
+    public void haltPlayerCamera(bool value) {
+        haltedPlayerCamera = value;
     }
 
 
@@ -228,7 +224,7 @@ public class PlayerMovement : MonoBehaviour
         X += (Input.GetKey(KeyCode.D)) ? 1.0f : 0.0f;
         X -= (Input.GetKey(KeyCode.A)) ? 1.0f : 0.0f;
 
-        Vector3 direction = sensitivityKey * speedMod * Time.deltaTime * (new Vector3(X, 0.0f, Z)).normalized;
+        Vector3 direction = sensitivityKey * speedMod * (new Vector3(X, 0.0f, Z)).normalized;
         
         // -- Translate the Player based on the view direction of the camera.
         gameObject.transform.position += new Vector3( Mathf.Cos(-angle) * direction.x - Mathf.Sin(-angle) * direction.z,
@@ -272,7 +268,7 @@ public class PlayerMovement : MonoBehaviour
             return; 
         }
         // -- Flashlight or Lantern must be off.
-        if (isLightSrcOn) {
+        if (LightDetectionManager.Entity.getIsPlayerLightSourceOn()) {
             idleTime = 0.0f;
             return;
         }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Matches : MonoBehaviour, SelectableInterface
+public class Matches : MonoBehaviour, SelectableInterface, UsableItemInterface
 {
     [SerializeField] private ItemData referenceData;
 
@@ -11,9 +11,12 @@ public class Matches : MonoBehaviour, SelectableInterface
         
     }
 
-    public void onPickUp() {
+    public void onSelection(Vector3 playerPos) {
+        float distance = Vector3.Distance(playerPos, gameObject.transform.position);
+        if (distance > 2.0f) { return; }
+
         // -- Adds Matches to the players inventory
-        InventorySystem.Entity.add(this);
+        InventoryManager.Entity.add(this);
 
         // -- Disable until use().
         gameObject.SetActive(false);
@@ -24,7 +27,7 @@ public class Matches : MonoBehaviour, SelectableInterface
         // -- Use the Item and remove it from the game.
         gameObject.SetActive(true);
 
-        InventorySystem.Entity.remove(this);
+        InventoryManager.Entity.remove(this);
         Destroy(gameObject);
     }
 

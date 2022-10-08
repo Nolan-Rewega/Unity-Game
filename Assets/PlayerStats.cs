@@ -66,7 +66,7 @@ public class PlayerStats : MonoBehaviour
         m_isRunning = running;
     }
 
-    public void setPlayerDarkness(bool inDarkness) {
+    public void setPlayerInDarkness(bool inDarkness) {
         m_inDarkness = inDarkness;
     }
 

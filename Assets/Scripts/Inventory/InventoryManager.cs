@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class InventorySystem : MonoBehaviour
+public class InventoryManager : MonoBehaviour
 {
-    public static InventorySystem Entity;
+    public static InventoryManager Entity;
 
     [SerializeField] private GameObject slotPrefab;
     private InventorySlot[] slots;
 
-    private List< List<SelectableInterface> > inventory;
+    private List< List<UsableItemInterface> > inventory;
     private int displayedSlots;
     private int firstSlotIndex;
 
@@ -24,7 +24,7 @@ public class InventorySystem : MonoBehaviour
         displayedSlots = 5;
         firstSlotIndex = 0;
 
-        inventory = new List<List<SelectableInterface>>();
+        inventory = new List<List<UsableItemInterface>>();
         slots = new InventorySlot[displayedSlots];
 
         for (int i = 0; i < displayedSlots; i++){
@@ -36,21 +36,22 @@ public class InventorySystem : MonoBehaviour
     }
 
 
-    public void add(SelectableInterface item) {
-        int index = searchForItemList(item.getItemData());
+
+    public void add(UsableItemInterface item) {
+        int index = searchForItemList(item.getItemData().itemID);
 
         if (index == -1) {
             // -- Display Item Overlay scene.
             overlay.DisplayOverlay(item.getItemData(), true);
-            inventory.Add(new List<SelectableInterface>() { item }); 
+            inventory.Add(new List<UsableItemInterface>() { item }); 
         }
         else { inventory[index].Add(item); }
 
         updateInventoryUI();
     }
 
-    public void remove(SelectableInterface item) {
-        int index = searchForItemList(item.getItemData());
+    public void remove(UsableItemInterface item) {
+        int index = searchForItemList(item.getItemData().itemID);
 
         if (index != -1) {
             if (inventory[index].Count > 1) { 
@@ -60,6 +61,20 @@ public class InventorySystem : MonoBehaviour
             updateInventoryUI();
         }
     }
+
+    public UsableItemInterface searchItemByID(string ID) {
+        int index = searchForItemList(ID);
+        return (index != -1) ? inventory[index][0] : null;
+    }
+
+
+
+    public int getStackSizeByID(string ID) {
+        int result = searchForItemList(ID);
+        return (result == -1) ? 0 : inventory[result].Count;
+    }
+
+
 
 
     public void itemLeftClick(int slot) {
@@ -78,14 +93,13 @@ public class InventorySystem : MonoBehaviour
         overlay.DisplayOverlay(inventory[slot][0].getItemData(), true);
     }
 
-
-
     public void scrollInventory(int slotDx) {
         if (inventory.Count <= displayedSlots) { return; }
         firstSlotIndex = (firstSlotIndex + slotDx) % inventory.Count;
 
         updateInventoryUI();
     }
+
 
 
     private void updateInventoryUI() {
@@ -105,17 +119,15 @@ public class InventorySystem : MonoBehaviour
     }
 
 
+
     // -- O(n), but n is no more than 100.
-    private int searchForItemList(ItemData item) {
-        string name = item.itemName;
-        Debug.Log(inventory.Count);
+    private int searchForItemList(string ID) {
         for(int i = 0; i < inventory.Count; i++) {
-            if (inventory[i][0].getItemData().itemName == name){
+            if (inventory[i][0].getItemData().itemID == ID){
                 return i;
             }
         }
-        return -1; // -- No item found.
+        return -1; // -- No itemList found.
     }
-
 
 }

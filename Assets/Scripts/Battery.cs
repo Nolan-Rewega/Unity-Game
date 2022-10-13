@@ -15,11 +15,7 @@ public class Battery : MonoBehaviour, SelectableInterface, UsableItemInterface
 
 
 
-    // -- UsableItemInterface methods
-    public ItemData getItemData() {
-        return referenceData;
-    }
-
+    // -- SelectableInterface methods
     public void onSelection(Vector3 playerPos) {
         float distance = Vector3.Distance(playerPos, gameObject.transform.position);
         if (distance > 2.0f) { return; }
@@ -46,5 +42,7 @@ public class Battery : MonoBehaviour, SelectableInterface, UsableItemInterface
         // -- else do nothing.
 
     }
-
+    public ItemData getItemData(){
+        return referenceData;
+    }
 }

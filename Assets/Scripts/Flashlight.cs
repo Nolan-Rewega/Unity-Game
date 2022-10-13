@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
-public class Flashlight : MonoBehaviour, SelectableInterface, UsableItemInterface, PlayerLightSource
+public class Flashlight : MonoBehaviour, SelectableInterface, EquipableItemInterface, UsableItemInterface, PlayerLightSource
 {
     [SerializeField] private ItemData referenceData;
     [SerializeField] private float energyDrainRate;
@@ -67,13 +67,6 @@ public class Flashlight : MonoBehaviour, SelectableInterface, UsableItemInterfac
     }
 
 
-
-    private void updateFlashlightComponents() {
-        // -- Set the light source.
-        PlayerLightSource src = (isEquiped) ? this : null;
-        LightDetectionManager.Entity.setPlayerLightSource(src);
-    }
-
     private void toggleLight() {
 
         // -- Update flashlights position
@@ -118,6 +111,8 @@ public class Flashlight : MonoBehaviour, SelectableInterface, UsableItemInterfac
     public bool getIsLightSourceOn(){
         return lightComponent.enabled;
     }
+
+    // -- UsableItemInterface methods
     public void equip() { // called by LightDetectionManager
         // -- Play equip sounds and animation.
         isEquiped = true;
@@ -130,15 +125,10 @@ public class Flashlight : MonoBehaviour, SelectableInterface, UsableItemInterfac
         lightComponent.enabled = false;
         gameObject.GetComponent<MeshRenderer>().enabled = false;
     }
-
-
-    // -- UsableItemInterface methods
     public void use() {
         // -- Play turn on sounds and animation.
-
-        PlayerLightSource src = (!isEquiped) ? this : null;
-        LightDetectionManager.Entity.setPlayerLightSource(src);
-
+        EquipableItemInterface src = (!isEquiped) ? this : null;
+        EquipableManager.Entity.setEquipedItem(src);
     }
     public ItemData getItemData(){
         return referenceData;

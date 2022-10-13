@@ -5,10 +5,17 @@ using UnityEngine;
 public class Matches : MonoBehaviour, SelectableInterface, UsableItemInterface
 {
     [SerializeField] private ItemData referenceData;
+    private Lantern lantern;
+
 
     // Start is called before the first frame update
     void Start(){
-        
+        lantern = GameObject.Find("Lantern").GetComponent<Lantern>();
+    }
+
+    public void consumeMatch() {
+        InventoryManager.Entity.remove(this);
+        Destroy(this);
     }
 
     public void onSelection(Vector3 playerPos) {
@@ -23,13 +30,7 @@ public class Matches : MonoBehaviour, SelectableInterface, UsableItemInterface
     }
 
     // -- When Clicked or Q pressed.
-    public void use(){
-        // -- Use the Item and remove it from the game.
-        gameObject.SetActive(true);
-
-        InventoryManager.Entity.remove(this);
-        Destroy(gameObject);
-    }
+    public void use(){ }
 
 
     public ItemData getItemData(){

@@ -6,17 +6,11 @@ public class PlayerMovement : MonoBehaviour
 {
 
     // -- Private attributes.
-    private enum INTERACTSTATE { IDLE, DOOR, HOLDING };
     private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN };
 
-    private INTERACTSTATE interactionState;
     private MOVEMENTSTATE movementState;
 
     private GameObject cameraObj;
-    private GameObject currPhyObj;
-    private GameObject currDoor;
-
-    private RayCastSelection raycaster;
     private PlayerStats playerStats;
 
     private Vector3 mouseDelta;
@@ -32,7 +26,6 @@ public class PlayerMovement : MonoBehaviour
 
     private float sensitivityMouse;
     private float sensitivityKey;
-    private float phyObjDistance;
     private float currCameraY;
     private float prevCameraY;
 
@@ -45,11 +38,7 @@ public class PlayerMovement : MonoBehaviour
     private bool outOfBreath;
 
 
-
-
-
     void Start(){
-        interactionState = INTERACTSTATE.IDLE;
         movementState    = MOVEMENTSTATE.WALK;
 
         haltedPlayerMovement = false;
@@ -59,14 +48,13 @@ public class PlayerMovement : MonoBehaviour
         prevMovementModifier = 1.0f;
         sensitivityMouse =  3.0f;
         sensitivityKey   =  0.01f;
-        phyObjDistance   =  1.0f;
+
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
 
         idleTime    = 0.0f;
         elapsedTime = 0.0f;
 
-        raycaster   = gameObject.GetComponent<RayCastSelection>();
         playerStats = gameObject.GetComponent<PlayerStats>();
         cameraObj   = gameObject.transform.GetChild(0).gameObject;
     }
@@ -80,90 +68,15 @@ public class PlayerMovement : MonoBehaviour
         modifyPlayerMovement();
 
         if (!haltedPlayerMovement) { movePlayer(); }
-        if (!haltedPlayerCamera)   { moveCamera(); }
-
-        playerSelection();
-
+        if (!haltedPlayerCamera) { moveCamera(); }
     }
 
 
-    // -- Ugly Ugly spaghetti functions.
-    public void updateDoorMode(GameObject door){
-        interactionState = INTERACTSTATE.DOOR;
-        currDoor = door;
-    }
-
-    public void updateHeldObject(GameObject physicObject){
-        interactionState = INTERACTSTATE.HOLDING;
-        currPhyObj = physicObject;
-
-        // -- Disable gravity
-        currPhyObj.GetComponent<Rigidbody>().useGravity = false;
-    }
-
-
-
-    // -- Used by InventoryContorller
     public void haltPlayerMovement(bool value) {
         haltedPlayerMovement = value;
     }
-    // -- Used by InventoryContorller and DescriptionOverlay
     public void haltPlayerCamera(bool value) {
         haltedPlayerCamera = value;
-    }
-
-
-
-    private void playerSelection(){
-
-        switch (interactionState) {
-            case INTERACTSTATE.IDLE:
-                if (Input.GetKeyDown(KeyCode.E)) { raycaster.castRay(); }
-                break;
-
-            case INTERACTSTATE.DOOR:
-                if (Input.GetKey(KeyCode.E)){
-                    //prevMovementModifier = currMovementModifier;
-                    //currMovementModifier = 0.5f;
-                    
-                    // -- rotate door.
-                    Vector3 mouseDir = new Vector3(-mouseDelta.x, 0.0f, -mouseDelta.y);
-                    Vector3 cameraForward = new Vector3(cameraObj.transform.forward.x, 0.0f, cameraObj.transform.forward.z);
-                    currDoor.GetComponent<Door>().rotateDoor(cameraForward, mouseDir);
-                }
-                else{
-                    //prevMovementModifier = currMovementModifier;
-                    //currMovementModifier = 1.0f;
-
-                    interactionState = INTERACTSTATE.IDLE;
-                    currDoor   = null;
-                }
-                break;
-
-            case INTERACTSTATE.HOLDING:
-
-                if (Input.GetKey(KeyCode.E)) {
-                    // -- Move the Object in front of the player.
-                    currPhyObj.transform.position = (cameraObj.transform.forward * phyObjDistance) + cameraObj.transform.position;
-
-                    if (Input.GetKey(KeyCode.R)) {
-                        currPhyObj.transform.Rotate(new Vector3(mouseDelta.y, mouseDelta.x,0.0f));
-                    }
-                    else{
-                        currPhyObj.transform.eulerAngles += new Vector3(0.0f, -mouseDelta.x, 0.0f);
-                    }
-                }
-                else{
-                    // -- Apply a force to the object.
-                    currPhyObj.GetComponent<Rigidbody>().useGravity = true;
-                    currPhyObj.GetComponent<Rigidbody>().AddForce((Vector3.up + cameraObj.transform.forward.normalized) * 100.0f);
-
-                    // -- Drop the object
-                    interactionState = INTERACTSTATE.IDLE;
-                    currPhyObj = null;
-                }
-                break;
-        }
     }
 
 
@@ -242,15 +155,7 @@ public class PlayerMovement : MonoBehaviour
             x = 0.0f;
         }
 
-        if (interactionState == INTERACTSTATE.IDLE){
-            cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
-        }
-        else if (interactionState == INTERACTSTATE.HOLDING) {
-            if (!Input.GetKey(KeyCode.R)) {
-                cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
-            }
-        }
-
+        cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
     }
 
     private void checkStealthMode() {
@@ -268,7 +173,7 @@ public class PlayerMovement : MonoBehaviour
             return; 
         }
         // -- Flashlight or Lantern must be off.
-        if (LightDetectionManager.Entity.getIsPlayerLightSourceOn()) {
+        if (EquipableManager.Entity.getIsPlayerLightSourceOn()) {
             idleTime = 0.0f;
             return;
         }

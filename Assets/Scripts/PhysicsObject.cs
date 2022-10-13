@@ -10,7 +10,7 @@ public class PhysicsObject : MonoBehaviour, SelectableInterface
         if (distance > 2.0f) { return; }
 
         // -- Tell the player we are now holding this Object.
-        GameObject.Find("Player").GetComponent<PlayerMovement>().updateHeldObject(gameObject);
+        GameObject.Find("Player").GetComponent<PlayerSelection>().updateHeldObject(gameObject);
     
     }
 

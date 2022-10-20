@@ -9,6 +9,7 @@ TagManager:
   - Door
   - Flashlight
   - Lantern
+  - Button
   layers:
   - Default
   - TransparentFX

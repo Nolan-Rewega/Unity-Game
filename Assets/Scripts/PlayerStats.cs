@@ -17,7 +17,8 @@ public class PlayerStats : MonoBehaviour
 
     private bool m_inDarkness;
     private bool m_isRunning;
-   
+    private bool m_isHiding;
+
 
     void Start(){
         m_stealthLevel = 2.0f;
@@ -28,12 +29,15 @@ public class PlayerStats : MonoBehaviour
 
         m_inDarkness = false;
         m_isRunning = false;
+        m_isHiding = false;
     }
 
     void Update(){
 
         m_sanity += (m_inDarkness) ? m_sanityRate : m_sanityRate * (-0.75f);
         m_sanity  = Mathf.Clamp(m_sanity, 0.0f, m_sanityCap);
+
+        m_stealthLevel = (m_isHiding) ? 0.05f : m_stealthLevel;
 
         m_staminaAmount += (m_isRunning) ? m_staminaUsageRate * Time.deltaTime : m_staminaRegenRate * Time.deltaTime;
         m_staminaAmount  = Mathf.Clamp(m_staminaAmount, 0.0f, m_staminaCap);
@@ -58,8 +62,8 @@ public class PlayerStats : MonoBehaviour
 
 
     // -- Set methods
-    public void setStealthLevel(float value) {
-        m_stealthLevel = value;
+    public void setStealthLevel(float stealthLevel) {
+        m_stealthLevel = stealthLevel;
     }
 
     public void setRunningState(bool running) {
@@ -68,6 +72,10 @@ public class PlayerStats : MonoBehaviour
 
     public void setPlayerInDarkness(bool inDarkness) {
         m_inDarkness = inDarkness;
+    }
+
+    public void setPlayerIsHiding(bool isHiding) {
+        m_isHiding = isHiding;
     }
 
 }

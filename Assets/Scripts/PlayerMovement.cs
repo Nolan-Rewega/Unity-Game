@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN, SLOWED };
 
     // -- Private attributes.
-    private enum MOVEMENTSTATE { WALK, CROUCH, PRONE, RUN };
-
     private MOVEMENTSTATE movementState;
+    private Dictionary<MOVEMENTSTATE, float[]> stateAttributes;
 
     private GameObject cameraObj;
     private PlayerStats playerStats;
@@ -21,8 +21,11 @@ public class PlayerMovement : MonoBehaviour
     private float interpolatedHeight;
     private float interpolatedSpeed;
 
+    // -- Player Movement flags.
     private bool haltedPlayerMovement;
     private bool haltedPlayerCamera;
+    private bool haltedStateChange;
+    private bool haltedSpeedChange;
 
     private float sensitivityMouse;
     private float sensitivityKey;
@@ -33,16 +36,25 @@ public class PlayerMovement : MonoBehaviour
     private float currDuration;
     private float elapsedTime;
 
-    private float idleTime;
-
-    private bool outOfBreath;
 
 
     void Start(){
-        movementState    = MOVEMENTSTATE.WALK;
+        movementState = MOVEMENTSTATE.WALK;
 
         haltedPlayerMovement = false;
         haltedPlayerCamera = false;
+        haltedStateChange = false;
+        haltedSpeedChange = false;
+
+        stateAttributes = new Dictionary<MOVEMENTSTATE, float[]>()
+        {   
+            // -- states         ->  height, speed mod, lerp duration, stealth level.
+            {MOVEMENTSTATE.WALK  , new float[] { 1.0f, 1.5f, 0.2f, 1.0f } },
+            {MOVEMENTSTATE.CROUCH, new float[] { 0.5f, 0.7f, 0.2f, 0.5f } },
+            {MOVEMENTSTATE.PRONE , new float[] { 0.2f, 0.3f, 0.3f, 0.2f } },
+            {MOVEMENTSTATE.RUN   , new float[] { 1.0f, 3.0f, 0.2f, 4.0f } },
+            {MOVEMENTSTATE.SLOWED, new float[] { 1.0f, 0.4f, 0.3f, 1.0f } }
+        };
 
         currMovementModifier = 1.0f;
         prevMovementModifier = 1.0f;
@@ -52,7 +64,6 @@ public class PlayerMovement : MonoBehaviour
         currCameraY   = 1.0f;
         prevCameraY   = 1.0f;
 
-        idleTime    = 0.0f;
         elapsedTime = 0.0f;
 
         playerStats = gameObject.GetComponent<PlayerStats>();
@@ -63,12 +74,41 @@ public class PlayerMovement : MonoBehaviour
     void Update(){
         mouseDelta = sensitivityMouse * new Vector3(-Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y"), 0.0f);
 
-        checkStealthMode();
+        // -- Removed checkStealthMode();
         checkPlayerStamina();
-        modifyPlayerMovement();
-
+        
+        if (!haltedStateChange) { modifyMovementState(); }
         if (!haltedPlayerMovement) { movePlayer(); }
         if (!haltedPlayerCamera) { moveCamera(); }
+    }
+
+
+    public void setMovementState(MOVEMENTSTATE state) {
+        float[] attributes = stateAttributes[state];
+
+        // -- Update playerStats.
+        playerStats.setStealthLevel(attributes[3]);
+        playerStats.setRunningState((state == MOVEMENTSTATE.RUN));
+
+        movementState = state;
+
+        // -- Already interpolating so switch mid interpolation.
+        if (interpolating){
+            elapsedTime = 0.0f;
+            prevMovementModifier = interpolatedSpeed;
+            prevCameraY = interpolatedHeight;
+        }
+        else {
+            prevMovementModifier = currMovementModifier;
+            prevCameraY = currCameraY;
+        }
+
+        // -- Update player modifiers.
+        currMovementModifier = attributes[1];
+        currCameraY = attributes[0];
+
+        interpolating = true;
+        currDuration = attributes[2];
     }
 
 
@@ -78,30 +118,38 @@ public class PlayerMovement : MonoBehaviour
     public void haltPlayerCamera(bool value) {
         haltedPlayerCamera = value;
     }
+    public void haltMovementStateChange(bool value) {
+        haltedStateChange = value;
+    }
+    public void haltMovementSpeedChange(bool value){
+        haltedSpeedChange = value;
+    }
 
 
-    private void modifyPlayerMovement() {
-        // -- Cannot change state while out of breath.
-        if (outOfBreath) { return; }
+
+
+    private void modifyMovementState() {
+        // -- If currently slower dont change states.
+        if (movementState == MOVEMENTSTATE.SLOWED) { return; }
 
         // -- Change movement state based on key input.
         //    TODO: Expand to full state machine.
         if (( Input.GetKeyDown(KeyCode.LeftControl) && movementState == MOVEMENTSTATE.CROUCH) ||
             ( Input.GetKeyDown(KeyCode.C)           && movementState == MOVEMENTSTATE.PRONE )    ){
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
+            setMovementState(MOVEMENTSTATE.WALK);
         }
         else if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W)) {
-            setMovementState(MOVEMENTSTATE.RUN, 1.0f, 3.0f, 0.2f);
+            setMovementState(MOVEMENTSTATE.RUN);
         }
         else if (Input.GetKeyUp(KeyCode.LeftShift) && movementState == MOVEMENTSTATE.RUN || 
                  Input.GetKeyUp(KeyCode.W)         && movementState == MOVEMENTSTATE.RUN    ) {
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
+            setMovementState(MOVEMENTSTATE.WALK);
         }
         else if (Input.GetKeyDown(KeyCode.LeftControl)){
-            setMovementState(MOVEMENTSTATE.CROUCH, 0.5f, 0.7f, 0.2f);
+            setMovementState(MOVEMENTSTATE.CROUCH);
         }
         else if (Input.GetKeyDown(KeyCode.C)){
-            setMovementState(MOVEMENTSTATE.PRONE, 0.2f, 0.3f, 0.3f);
+            setMovementState(MOVEMENTSTATE.PRONE);
         }
 
     }
@@ -158,79 +206,17 @@ public class PlayerMovement : MonoBehaviour
         cameraObj.transform.eulerAngles += new Vector3(x, -mouseDelta.x, 0.0f);
     }
 
-    private void checkStealthMode() {
-        // -- Fail conditions.
-        if (movementState != MOVEMENTSTATE.PRONE) {
-            idleTime = 0.0f; // -- Reset StealthMode timer.
-            return; 
-        }
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)) {
-            idleTime = 0.0f; // -- Reset StealthMode timer.
-            return; 
-        }
-        if (mouseDelta.sqrMagnitude > 0.0f) {
-            idleTime = 0.0f; // -- Reset StealthMode timer.
-            return; 
-        }
-        // -- Flashlight or Lantern must be off.
-        if (EquipableManager.Entity.getIsPlayerLightSourceOn()) {
-            idleTime = 0.0f;
-            return;
-        }
-
-        idleTime += Time.deltaTime;
-        float t = idleTime / 2.0f;
-
-        if (t > 1.0f) {
-            // -- In stealth mode. starts decreasing sanity. increase stealth level alot
-            Debug.Log("STEALTH MODE. ");
-            playerStats.setStealthLevel(0.1f);
-        }
-    }
-
+  
     private void checkPlayerStamina() {
+        // -- Change to a slow state.
         if (playerStats.getPlayerStamina() < 0.1f){
-            outOfBreath = true;
-
-            // -- Change to a slow state.
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 0.4f, 0.3f);
-
+            setMovementState(MOVEMENTSTATE.SLOWED);
         }
-        else if (outOfBreath && playerStats.getPlayerStamina() > 25.0f) {
-            // -- Return to normal speed.
-            setMovementState(MOVEMENTSTATE.WALK, 1.0f, 1.5f, 0.2f);
-            outOfBreath = false;
+
+        // -- Return to normal speed.
+        else if (movementState == MOVEMENTSTATE.SLOWED && playerStats.getPlayerStamina() > 25.0f) {
+            setMovementState(MOVEMENTSTATE.WALK);
         }
     }
 
-
-    private void setMovementState(MOVEMENTSTATE state, float height, float modifier, float lerpDuration) {
-        // -- Tell playerStats the new MOVEMENTSTATE.
-        if      (state == MOVEMENTSTATE.WALK)   { playerStats.setStealthLevel(2.0f); }
-        else if (state == MOVEMENTSTATE.CROUCH) { playerStats.setStealthLevel(1.0f); }
-        else if (state == MOVEMENTSTATE.PRONE)  { playerStats.setStealthLevel(0.4f); }
-        else if (state == MOVEMENTSTATE.RUN)    { playerStats.setStealthLevel(4.0f); }
-
-        // -- Tell playerStats if the player is running or not.
-        if (state == MOVEMENTSTATE.RUN) { playerStats.setRunningState(true); } 
-        else { playerStats.setRunningState(false); }
-
-        movementState = state;
-
-        // -- Already interpolating so switch mid interpolation.
-        if (interpolating){
-            elapsedTime = 0.0f;
-            prevMovementModifier = interpolatedSpeed;
-            prevCameraY = interpolatedHeight;
-        }
-        else {
-            prevMovementModifier = currMovementModifier;
-            prevCameraY = currCameraY;
-        }
-        currMovementModifier = modifier;
-        currCameraY = height;
-
-        interpolating = true;
-        currDuration = lerpDuration;
-    }
 }

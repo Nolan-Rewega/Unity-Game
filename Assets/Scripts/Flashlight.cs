@@ -101,7 +101,7 @@ public class Flashlight : MonoBehaviour, SelectableInterface, EquipableItemInter
                 flickerDuration  = Random.Range(0.1f, 0.5f * (energy / energyCap + 0.1f));
             }
 
-            lighting.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t) * 1200.0f;
+            lighting.intensity = Mathf.Lerp(flickerIntensity, currUpperLimit, t) * 500.0f;
         }
 
     }
